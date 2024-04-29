@@ -1,0 +1,106 @@
+unit acerca;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, LMDCustomControl, LMDCustomPanel, LMDCustomBevelPanel,
+  LMDSimplePanel, StdCtrls, LMDControl, LMDBaseControl, LMDBaseGraphicControl,
+  LMDGraphicControl, LMDFill, jpeg, DB, ADODB, Grids, DBGrids;
+
+type
+  TAcerca_de = class(TForm)
+    Label10: TLabel;
+    LMDFill1: TLMDFill;
+    LMDSimplePanel1: TLMDSimplePanel;
+    Label5: TLabel;
+    Label8: TLabel;
+    Label7: TLabel;
+    Label4: TLabel;
+    Label3: TLabel;
+    Image1: TImage;
+    Label2: TLabel;
+    Label11: TLabel;
+    Label1: TLabel;
+    Label6: TLabel;
+    Label9: TLabel;
+    Label12: TLabel;
+    Label13: TLabel;
+    Label14: TLabel;
+    DBGrid1: TDBGrid;
+    Button1: TButton;
+    DataSource1: TDataSource;
+    ADODataSet1: TADODataSet;
+    Memo1: TMemo;
+    procedure FormActivate(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Acerca_de: TAcerca_de;
+
+implementation
+
+uses Modulo;
+
+{$R *.dfm}
+
+procedure TAcerca_de.FormActivate(Sender: TObject);
+var  ruta:string;
+begin
+try
+  ruta:=modulo2.path_todo + '\Imagenes\LogoDesarrollo.jpg';
+  image1.Picture.LoadFromFile(ruta);
+except
+end;
+end;
+
+
+procedure TAcerca_de.Button1Click(Sender: TObject);
+var
+  intRecordsAffected : Integer;
+  sp:TADOStoredProc;
+  n,i: integer;
+begin
+  sp := TADOStoredProc.Create( self );
+       ADODataSet1.Recordset := sp.Recordset;
+  with sp do
+    try
+      ConnectionString := modulo2.Conexion;
+      ProcedureName := 'CargaPeriodosComprobantesCobradosPeriodos';
+      with parameters do begin
+         CreateParameter('@idPago', ftInteger, pdInput, 1, n);
+         CreateParameter('@desde', ftInteger, pdInput, 6, n);
+         CreateParameter('@hasta', ftInteger, pdInput, 6, n);
+      end;
+      sp.Parameters.ParamValues['@idPago']:=21;
+      sp.Parameters.ParamValues['@desde']:=201001;
+      sp.Parameters.ParamValues['@hasta']:=201012;
+      Open;
+      //ADODataSet1.Recordset := sp.NextRecordset(intRecordsAffected);
+      //  for i:= 0 to sp.Parameters.Count - 1 do
+      //     Memo1.Lines.Add(sp.DataSource.DataSet.);
+    finally
+      Free;
+    end;
+
+
+
+
+//  ADOStoredProc1.ConnectionString:=modulo2.Conexion;
+//  ADOStoredProc1.ProcedureName := 'CargaPeriodosComprobantesCobradosPeriodos';
+//  ADOStoredProc1.Parameters.ParamByName('@idPago').Value:=1;
+//  ////ADOStoredProc1.ParamByName('idPago').AsInteger:= 1;
+//  //ADOStoredProc1.ParamByName('desde').AsInteger :=201001;
+//  //ADOStoredProc1.ParamByName('hasta').AsInteger := 201012;
+//  ADOStoredProc1.Open;
+//
+//  ADODataSet1.Recordset := ADOStoredProc1.RecordSet;
+//  ADODataSet2.Recordset := ADOStoredProc1.NextRecordset(intRecordsAffected);
+end;
+
+end.

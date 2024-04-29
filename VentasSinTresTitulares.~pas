@@ -1,0 +1,631 @@
+unit VentasSinTresTitulares;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, Grids, DBGrids, StdCtrls, JvExGrids, JvStringGrid, Buttons,
+  JvExButtons, JvBitBtn, JvgGroupBox,ClaseFunciones,Unidad,DBClient,
+  ComCtrls,ClaseParcelasTitulares, ExtCtrls, RpDefine, RpBase, RpSystem,ADODB;
+
+type HackTable = class(TADOTable);
+type
+  TForm1 = class(TForm)
+    DataSource1: TDataSource;
+    PC1: TPageControl;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    GroupBox2: TGroupBox;
+    JvgGroupBox1: TJvgGroupBox;
+    Label21: TLabel;
+    Label53: TLabel;
+    Label1: TLabel;
+    Bevel1: TBevel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Edit1: TEdit;
+    Button2: TJvBitBtn;
+    NIVEL: TComboBox;
+    GrillaT: TJvStringGrid;
+    Agrega2: TJvBitBtn;
+    Modifica2: TJvBitBtn;
+    bGuardar: TJvBitBtn;
+    nroaccion: TEdit;
+    totales: TJvStringGrid;
+    GroupBox1: TGroupBox;
+    VentasSinTit: TDBGrid;
+    Acciones: TJvStringGrid;
+    barra: TStatusBar;
+    GroupBox5: TGroupBox;
+    GroupBox4: TGroupBox;
+    c4: TCheckBox;
+    C6: TCheckBox;
+    JvBitBtn1: TJvBitBtn;
+    JvBitBtn2: TJvBitBtn;
+    T8: TClientDataSet;
+    RvS: TRvSystem;
+    Image1: TImage;
+    procedure Button2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure Agrega2Click(Sender: TObject);
+    procedure Modifica2Click(Sender: TObject);
+    procedure Coloca1(nro:byte);
+    procedure VentasSinTitCellClick(Column: TColumn);
+    procedure bGuardarClick(Sender: TObject);
+    procedure GrillaTClick(Sender: TObject);
+    procedure JvBitBtn1Click(Sender: TObject);
+    procedure AccionesClick(Sender: TObject);
+    procedure JvBitBtn2Click(Sender: TObject);
+    procedure RvSPrint(Sender: TObject);
+  private
+    gh:boolean;
+    PosH:Array [0..3] of Double;//Posiciones
+    Camp:Array [0..3] of Integer;//Campos a Tomar en cuenta
+    TxtCamp:Array [0..3] of String;//Textos de los Campos a Tomar en cuenta
+    { Private declarations }
+  public
+    coefi,inter,porcent,name,coninter,nivelusu:string;
+    Adress,NroDocu,TProfesion,TNacimiento,TNacion,Resultado,TCuif: string;
+    TTel,TCel,TTipo,Naci,Nacio,TECivil,TCiudad,TEstado,TCP,TProvincia,TDoc,TDom,TNivel: string;
+    Funciones:TFuncionesVarias;
+    DtcomboC,DtCombo,DataSetC,DataSet,DataSet1,DataSetCli:TClientDataSet;
+    ParcelasTitulares:TParcelasTitulares;
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+uses Modulo,Busqueda;
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+gh:=false;
+end;
+
+procedure TForm1.FormActivate(Sender: TObject);
+begin
+if not gh then begin
+  gh:=true;
+  GrillaT.Cells[0,0]:='Orden';
+  GrillaT.Cells[1,0]:='Id';
+  GrillaT.Cells[2,0]:='Nombre';
+  GrillaT.Cells[3,0]:='TipoDNI';
+  GrillaT.Cells[4,0]:='DNI';
+  GrillaT.Cells[5,0]:='Domicilio';
+  GrillaT.Cells[6,0]:='NroT';
+  GrillaT.Cells[7,0]:='MDF';
+  GrillaT.Cells[8,0]:='Cuif';
+  GrillaT.Cells[9,0]:='FecNac';
+  GrillaT.Cells[10,0]:='Nacionalidad';
+  GrillaT.Cells[11,0]:='EstCivil';
+  GrillaT.Cells[12,0]:='Ciudad';
+
+  acciones.Cells[0,0]:='Orden';
+  acciones.Cells[1,0]:='NroAccion';
+  acciones.Cells[2,0]:='CantTitulares';
+  acciones.Cells[3,0]:='Fecha Cesion';
+  acciones.Cells[4,0]:='1er Titutalar';
+  acciones.Cells[5,0]:='Telefonos';
+
+  totales.Cells[0,0]:='Movimiento';
+  totales.Cells[1,0]:='Cantidad';
+
+  coloca1(0);
+  coloca1(3);
+  GroupBox2.Enabled:=false;
+  PC1.ActivePage:=PC1.Pages[0];
+end;
+end;
+
+procedure TForm1.Coloca1(nro:byte);
+var  txtw,txt:widestring;
+     t,y:integer;
+begin
+if nro=0 then begin
+ DataSet1.Free;
+ DataSet1:=TClientdataSet.Create(nil);
+ DataSource1.DataSet:=DataSet1;
+ Funciones:=TFuncionesVarias.Create(nil);
+ Funciones.ConnectionString:=modulo2.Conexion;
+ txt:='SELECT row_number() over (order by LasAccionesVentasSinTresTitulares.NroAccion ) as Orden,'
+ +'LasAccionesVentasSinTresTitulares.NroAccion , COUNT(*) as CantdeTitulares,'
+ +'convert(char(10),ParcelasVentas.Fecha,103) as FechaCesion,EstadoDeudaGeneral.NombreTitular,'
+ +'(SELECT telef FROM dbo.LosTelefonosClientes(EstadoDeudaGeneral.CuifTitular) AS LosTelefonosClientes_1) as Telefono '
+ +' FROM LasAccionesVentasSinTresTitulares '
+ +' inner join ParcelasTitulares on ParcelasTitulares.NroAccion = LasAccionesVentasSinTresTitulares.NroAccion '
+ +' inner join ParcelasVentas on ParcelasVentas.NroAccion = LasAccionesVentasSinTresTitulares.NroAccion '
+ +' inner join EstadoDeudaGeneral on EstadoDeudaGeneral.NroAccion = LasAccionesVentasSinTresTitulares.NroAccion  '
+ +' where ParcelasTitulares.NroTipoAcc=2  group by LasAccionesVentasSinTresTitulares.NroAccion,'
+ +' ParcelasVentas.Fecha,EstadoDeudaGeneral.NombreTitular,EstadoDeudaGeneral.CuifTitular '
+ +' where LasAccionesVentasSinTresTitulares.NroAccion > 0 '
+ +' order by ParcelasVentas.Fecha desc' ;
+ if not Funciones.listar(txt,DataSet1) then
+   messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+ Funciones.Free;
+ for t:=0 to acciones.ColCount-1 do
+ for y:=1 to acciones.RowCount-1 do acciones.Cells[t,y]:='';
+ for t:=1 to DataSource1.DataSet.RecordCount  do begin
+  DataSource1.DataSet.RecNo:=t;
+  acciones.RowCount:=t+1;
+  acciones.Cells[0,t]:=completa1(inttostr(t),3,'0');//trim(DataSource1.DataSet.Fields[0].AsString);
+  acciones.Cells[1,t]:=trim(DataSource1.DataSet.Fields[1].AsString);
+  acciones.Cells[2,t]:=trim(DataSource1.DataSet.Fields[2].AsString);
+  acciones.Cells[3,t]:=trim(DataSource1.DataSet.Fields[3].AsString);
+  acciones.Cells[4,t]:=trim(DataSource1.DataSet.Fields[4].AsString);
+  acciones.Cells[5,t]:=trim(DataSource1.DataSet.Fields[5].AsString);
+ end;
+  Barra.Panels[0].Text:='Cant. de Acciones ' + inttostr(DataSource1.DataSet.RecordCount);
+end;
+if nro=1 then begin
+ DtCombo.Free;
+ DtCombo:=TClientdataSet.Create(nil);
+ Funciones:=TFuncionesVarias.Create(nil);
+ Funciones.ConnectionString:=modulo2.Conexion;
+ txtw:='Select * FROM vistalostitularesminoristas Where (NroAccion = ' + trim(nroaccion.Text) +') and (nivel > 0) ';
+ if not Funciones.listar(txtw,DtCombo) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+ Funciones.Free;
+ for t:=0 to grillat.ColCount-1 do
+   for y:=1 to grillat.RowCount-1 do grillat.Cells[t,y]:='';
+ for t:=1 to DtCombo.RecordCount  do begin
+  DtCombo.RecNo:=t;
+  grillat.RowCount:=t+1;
+  grillat.Cells[0,t]:=completa1(inttostr(t),2,'0');
+  grillat.Cells[1,t]:=trim(DtCombo.Fields[0].AsString);
+  grillat.Cells[2,t]:=trim(DtCombo.Fields[1].AsString);
+  grillat.Cells[3,t]:=trim(DtCombo.Fields[2].AsString);
+  grillat.Cells[4,t]:=trim(DtCombo.Fields[3].AsString);
+  grillat.Cells[5,t]:=trim(DtCombo.Fields[4].AsString);
+  grillat.Cells[6,t]:=trim(DtCombo.Fields[5].AsString);
+  grillat.Cells[7,t]:=trim(DtCombo.Fields[6].AsString);
+  grillat.Cells[8,t]:=trim(DtCombo.Fields[7].AsString);
+  grillat.Cells[9,t]:=trim(DtCombo.Fields[8].AsString);
+  grillat.Cells[10,t]:=trim(DtCombo.Fields[9].AsString);
+  grillat.Cells[11,t]:=trim(DtCombo.Fields[10].AsString);
+  grillat.Cells[12,t]:=trim(DtCombo.Fields[11].AsString);
+ end;
+end;
+if nro=2 then begin
+ DtCombo.Free;
+ DtCombo:=TClientdataSet.Create(nil);
+ Funciones:=TFuncionesVarias.Create(nil);
+ Funciones.ConnectionString:=modulo2.Conexion;
+ txtw:='SELECT  ''TIPO''= case when Donacion=0 and Financiado=1 then ''VENTA'' else '
+ + ' case when Donacion=1 and Financiado=0 then ''CESION GRATUITA''   else '
+ + ' case when Donacion=0 and Financiado=0 then ''TRANSFERENCIA''  else '''' end end end  '
+ + ' FROM  ParcelasVentas WHERE   (NroAccion = ' + trim(nroaccion.Text) + ')';
+ if not Funciones.listar(txtw,DtCombo) then
+     messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+ Funciones.Free;
+ label3.Caption:=trim(DtCombo.Fields[0].AsString);
+end;
+if nro=3 then begin
+ DataSetCli.Free;
+ DataSetCli:=TClientdataSet.Create(nil);
+ Funciones:=TFuncionesVarias.Create(nil);
+ Funciones.ConnectionString:=modulo2.Conexion;
+ txtw:='SELECT * from LasAccionesVentasSinTresTitularesAgrupados (0)';
+ if not Funciones.listar(txtw,DataSetCli) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+ Funciones.Free;
+ for t:=0 to totales.ColCount-1 do
+  for y:=1 to totales.RowCount-1 do totales.Cells[t,y]:='';
+   for t:=1 to DataSetCli.RecordCount  do begin
+   DataSetCli.RecNo:=t;
+   totales.RowCount:=t+1;
+   totales.Cells[0,t]:=trim(DataSetCli.Fields[0].AsString);
+   totales.Cells[1,t]:=trim(DataSetCli.Fields[1].AsString);
+   end;
+end;
+if nro=4 then begin
+  DataSetC.Free;
+  DataSetC:=TClientdataSet.Create(nil);
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  txtw:='SELECT  * from LasAccionesVentasSinTresTitularesDet order by 1,4';
+  if not Funciones.listar(txtw,DataSetC) then
+     messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+end;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+var Busqueda:TLA_BUSQUEDA;
+begin
+ Busqueda:=TLA_BUSQUEDA.Create(self);
+ try
+  Busqueda.NroOpcion:=3;
+  Busqueda.ShowModal;
+  TCuif:=busqueda.DB2.Text;    //CUIf
+  edit1.Text:=busqueda.DB1.Text;     //DNI
+  name:=busqueda.DB4.Text;   //Nombre
+  tdom:=busqueda.DB5.Text;   //Domicilio
+  TDoc:=busqueda.DB3.Text;   //Tipo Doc
+  Nacio:=busqueda.DB8.Text;          //NAcionalidad
+  TECivil:=busqueda.DB9.Text;       //ecivil
+  naci:=busqueda.DB10.Text;          //fecnaci
+ finally
+  Busqueda.Destroy;
+  Agrega2.Enabled:=true;
+  Agrega2.SetFocus;
+  end;
+end;
+
+procedure TForm1.Agrega2Click(Sender: TObject);
+var t:integer;
+  function busca():boolean;
+    var p:integer;
+  begin
+    busca:=true;
+  if GrillaT.Cells[0,1] <> '' then begin
+    for p:=1 to GrillaT.RowCount-1 do
+      if (GrillaT.Cells[2,p]=trim(name))
+      and (GrillaT.Cells[3,p]=trim(TDoc))
+      and (GrillaT.Cells[6,p]=trim(Tnivel))
+      and (GrillaT.Cells[8,p]=trim(tcuif))
+      then busca:=false;
+  end;
+  end;
+
+begin
+if busca() then begin
+  if (GrillaT.RowCount > 1) and (trim(GrillaT.Cells[0,1])<>'') then begin
+   t:=GrillaT.RowCount;
+   GrillaT.RowCount:=GrillaT.RowCount+1;
+  end
+  else t:=1;
+  if  GrillaT.RowCount = 5 then begin
+   messagedlg('Error No se Puede seguir ingresando Titulares ',mtError,[mbok],0);
+   GrillaT.Cells[0,t]:='';              GrillaT.Cells[1,t]:='';
+   GrillaT.Cells[2,t]:='';              GrillaT.Cells[3,t]:='';
+   GrillaT.Cells[4,t]:='';              GrillaT.Cells[5,t]:='';
+   GrillaT.Cells[6,t]:='';              GrillaT.RowCount:=GrillaT.RowCount-1;
+  end
+  else begin
+   GrillaT.Cells[0,t]:=completa1(inttostr(t),2,'0'); //
+   GrillaT.Cells[1,t]:='?';                          //
+   GrillaT.Cells[2,t]:=trim(name);   //Nombre
+   GrillaT.Cells[3,t]:=trim(TDoc);           //TipoDNI
+   GrillaT.Cells[4,t]:=trim(edit1.Text);      //DNI
+   GrillaT.Cells[5,t]:=trim(tdom);      //dom
+   GrillaT.Cells[6,t]:=completa1(inttostr(t),2,'0');//trim(NIVEL.text);      //nrotit
+   GrillaT.Cells[7,t]:='X';                   //mdf
+   GrillaT.Cells[8,t]:=trim(tcuif);    //cuif
+   GrillaT.Cells[9,t]:=trim(naci);      //fecnac
+   GrillaT.Cells[10,t]:=trim(nacio);    //nacionalidad
+   GrillaT.Cells[11,t]:=trim(TECivil);   //ecivil
+   C6.Checked:=false;
+   c4.Checked:=true;
+  end;
+  if modifica2.Enabled = false then Agrega2.Enabled:=true;
+  Agrega2.Enabled:=FALSE;
+  EDIT1.Text:='00000000000';
+  name:='';
+  tdoc:='';
+  tcuif:='';
+  nacio:='';
+  tecivil:='';
+  TNivel:='';
+  bGuardar.Enabled:=true;
+  bGuardar.SetFocus;
+end
+else messagedlg('ERROR!! No Puede Existir dos Titulares del mismo NIVEL!!',mterror,[mbok],0);
+Button2.SetFocus;
+end;
+
+procedure TForm1.Modifica2Click(Sender: TObject);
+  function busca(ht:integer):boolean;
+    var p:integer;
+  begin
+    busca:=true;
+  if GrillaT.Cells[0,1] <> '' then begin
+    for p:=1 to GrillaT.RowCount-1 do
+     if (GrillaT.Cells[2,p]=trim(name))
+      and (GrillaT.Cells[3,p]=trim(Tdoc))
+      and (GrillaT.Cells[6,p]=trim(Tnivel))
+      and (GrillaT.Cells[8,p]=trim(tcuif))
+      and (ht<>p)
+       then busca:=false;
+  end;
+  end;
+begin
+if busca(GrillaT.Row) then begin
+  if GrillaT.Cells[1,GrillaT.Row] <> '?' then begin
+     GrillaT.Cells[7,GrillaT.Row]:='X';
+  end;
+  GrillaT.Cells[2,GrillaT.Row]:=trim(name);         //Nombre
+  GrillaT.Cells[3,GrillaT.Row]:=trim(tdoc);         //TipoDNI
+  GrillaT.Cells[4,GrillaT.Row]:=trim(edit1.Text);   //DNI
+  GrillaT.Cells[5,GrillaT.Row]:=trim(tdom);         //dom
+  GrillaT.Cells[6,GrillaT.Row]:=trim(TNivel);//  trim(NIVEL.text);   //nrotit
+  GrillaT.Cells[8,GrillaT.Row]:=trim(tcuif);        //cuif
+  GrillaT.Cells[9,GrillaT.Row]:=trim(naci);         //fecnac
+  GrillaT.Cells[10,GrillaT.Row]:=trim(nacio);       //cuif
+  GrillaT.Cells[11,GrillaT.Row]:=trim(tecivil);     //fecnac
+  C4.Checked:=false;
+  C6.Checked:=true;
+  Agrega2.Enabled:=false;
+  Modifica2.Enabled:=false;
+  button2.SetFocus;
+end
+else messagedlg('ERROR!! No Puede Existir dos Clientes con el mismo NIVEL!!',mterror,[mbok],0);
+end;
+
+procedure TForm1.VentasSinTitCellClick(Column: TColumn);
+begin
+if not (Dataset1.IsEmpty) then begin
+  GroupBox2.Enabled:=true;
+  nroaccion.Text:=trim(dataset1.Fields[0].AsString);
+  coloca1(1);
+  agrega2.Enabled:=true;
+  button2.SetFocus;
+end;
+end;
+
+procedure TForm1.bGuardarClick(Sender: TObject);
+var gf,p,t,u,a:integer;
+    pt:boolean;
+begin
+  if c6.Checked = false then begin
+   gf:=messagedlgpos('Desea Agregar este Cliente como Nuevo Titular?',mtWarning,[
+           mbok,mbCancel],0,screen.Width div 3,screen.Height div 3);
+   if gf = 1 then begin
+    if c4.Checked=true then begin
+     for p:=1 to GrillaT.RowCount-1 do begin
+      if trim(grillaT.Cells[1,p]) = '?' then begin
+       ParcelasTitulares:=TParcelasTitulares.Create(nil);
+       ParcelasTitulares.ConnectionString:=modulo2.Conexion;
+       parcelastitulares.C_Cuif:=strtoint64(GrillaT.Cells[8,p]);
+       parcelastitulares.C_Fecha_IX1:=strcut(Fec_System(),10);
+       parcelastitulares.C_NroAccion_IX2:=strtoint(nroaccion.Text);
+       parcelastitulares.C_NroTipoAcc_IX3:=2;
+       parcelastitulares.C_Nivel_IX4:=strtoint(GrillaT.Cells[6,p]);
+       parcelastitulares.C_Activo:=true;
+       parcelastitulares.C_Observaciones:='';
+       parcelastitulares.C_Fecha_A:=strcut(Fec_System(),10);
+       parcelastitulares.C_Usu_A:=modulo2.nro_usu;
+       pt:=parcelastitulares.Agrega;
+       if pt then begin
+          messagedlg('Se ha Guardado el nuevo Titular con Exito',mtConfirmation,[mbok],0);
+          Barra.Panels[1].Text:='Se ha Guardado los Titulares con Exito';
+       end
+       else begin
+          messagedlg('Error al Guardar el nuevo Titular. Consulte con un Administrador',mtError,[mbok],0);
+          Barra.Panels[1].Text:='Error al Guardar los Titulares';
+       end;
+       parcelastitulares.Free;
+      end;
+     end;
+     coloca1(0);
+     coloca1(1);
+     coloca1(3);
+     bguardar.Enabled:=false;
+    end;
+   end;
+  end
+  else begin
+   if c4.Checked=true then begin
+     for p:=1 to GrillaT.RowCount-1 do begin
+      if trim(grillaT.Cells[1,p]) = '?' then begin
+       ParcelasTitulares:=TParcelasTitulares.Create(nil);
+       ParcelasTitulares.ConnectionString:=modulo2.Conexion;
+       parcelastitulares.C_Cuif:=strtoint64(GrillaT.Cells[8,p]);
+       parcelastitulares.C_Fecha_IX1:=strcut(Fec_System(),10);
+       parcelastitulares.C_NroAccion_IX2:=strtoint(nroaccion.Text);
+       parcelastitulares.C_NroTipoAcc_IX3:=2;
+       parcelastitulares.C_Nivel_IX4:=strtoint(GrillaT.Cells[6,p]);
+       parcelastitulares.C_Activo:=true;
+       parcelastitulares.C_Observaciones:='';
+       parcelastitulares.C_Fecha_A:=strcut(Fec_System(),10);
+       parcelastitulares.C_Usu_A:=modulo2.nro_usu;
+       pt:=parcelastitulares.Agrega;
+       if pt then Barra.Panels[1].Text:='Se ha Guardado los Titulares con Exito'
+        else Barra.Panels[1].Text:='Error al Guardar los Titulares';
+       parcelastitulares.Free;
+       coloca1(0);
+       coloca1(1);
+       coloca1(3);
+       bguardar.Enabled:=false;
+      end
+      else begin
+       gf:=messagedlgpos('Desea Modificar este Titular?',mtWarning,[mbok,mbCancel],0,screen.Width div 3,screen.Height div 3);
+       if gf = 1 then begin
+        if trim(grillaT.Cells[7,t]) = 'X' then begin
+         ParcelasTitulares:=TParcelasTitulares.Create(nil);
+         ParcelasTitulares.ConnectionString:=modulo2.Conexion;
+         parcelastitulares.C_Cuif:=strtoint64(GrillaT.Cells[8,p]);
+         parcelastitulares.C_Fecha_IX1:=strcut(Fec_System(),10);
+         parcelastitulares.C_NroAccion_IX2:=strtoint(nroaccion.Text);
+         parcelastitulares.C_NroTipoAcc_IX3:=2;
+         parcelastitulares.C_Nivel_IX4:=strtoint(GrillaT.Cells[6,p]);
+         parcelastitulares.C_Activo:=true;
+         parcelastitulares.C_Observaciones:='';
+         parcelastitulares.C_Fecha_A:=strcut(Fec_System(),10);
+         parcelastitulares.C_Usu_A:=modulo2.nro_usu;
+         pt:=parcelastitulares.Modificar;
+         if pt then Barra.Panels[1].Text:='Se ha Modificado este Titular con Exito'
+          else Barra.Panels[1].Text:='Error al Guardar los Titulares';
+         parcelastitulares.Free;
+         coloca1(0);
+         coloca1(1);
+         coloca1(3);
+         bguardar.Enabled:=false;
+        end;
+       end;
+      end;
+     end;
+   end;
+  end;
+  for a:=0 to grillat.ColCount-1 do
+  for u:=1 to grillat.RowCount-1 do grillat.Cells[a,u]:='';
+  grillat.RowCount:=2;
+end;
+
+procedure TForm1.GrillaTClick(Sender: TObject);
+begin
+Agrega2.Enabled:=false;
+Modifica2.Enabled:=true;
+edit1.Text:=trim(GrillaT.Cells[4,GrillaT.Row]);
+name:=trim(GrillaT.Cells[2,GrillaT.Row]);
+tdoc:=trim(GrillaT.Cells[3,GrillaT.Row]);
+Tnivel:=trim(GrillaT.Cells[6,GrillaT.Row]);
+tcuif:=trim(GrillaT.Cells[8,GrillaT.Row]);
+naci:=trim(GrillaT.Cells[9,GrillaT.Row]);
+nacio:=trim(GrillaT.Cells[10,GrillaT.Row]);
+tecivil:=trim(GrillaT.Cells[11,GrillaT.Row]);
+button2.SetFocus;
+end;
+
+procedure TForm1.JvBitBtn1Click(Sender: TObject);
+begin
+close;
+end;
+
+procedure TForm1.AccionesClick(Sender: TObject);
+begin
+if not (Dataset1.IsEmpty) then begin
+  PC1.ActivePage:=PC1.Pages[1];
+  GroupBox2.Enabled:=true;
+  nroaccion.Text:=trim(acciones.Cells[1,acciones.Row]);
+  coloca1(2);
+  coloca1(1);
+  agrega2.Enabled:=true;
+  button2.SetFocus;
+end;
+end;
+
+procedure TForm1.JvBitBtn2Click(Sender: TObject);
+begin
+coloca1(4);
+rvs.Execute;
+end;
+
+procedure TForm1.RvSPrint(Sender: TObject);
+var posfx,posfy,final,salto:double;
+var t,y,hoja,nro:integer;
+var txt:string;
+var pso:boolean;
+
+ Function Logo(posx,posy:double;vaf:integer):double;
+   var Imagen1,MarcaAgua:TBitMap;
+       PathLogo,PathLogo1:string;
+   begin
+   with RvS do begin
+     Imagen1 := TBitMap.Create;
+     PathLogo:=modulo2.path_todo + '\Imagenes\' + modulo2.INI1.ReadString('Resumen Caja','Imagen1','');
+     if FileExists(PathLogo) then begin
+       Image1.Picture.LoadFromFile(PathLogo);
+       Imagen1.Assign(Image1.Picture.Graphic);
+       BaseReport.PrintBitmapRect(posx+6,posy+2,posx+30,posy+22,Imagen1);
+     end;
+     Imagen1.Free;
+
+     BaseReport.Rectangle(posx+2,posy+1,posx+200,posy+23);
+     BaseReport.SetFont('Arial Black',9);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.PrintXY(posx+34,posy+5,'CARMELO MONTE S.A. Servicios & Mandatos');
+     BaseReport.SetFont('Arial Black',8);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.PrintXY(posx+34,posy+9,modulo2.INI1.ReadString('Resumen Planillas','Titulo2',''));
+     BaseReport.SetFont('Arial',7);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.PrintXY(posx+149,posy+22,'Pág.: ' + inttostr(vaf));
+     BaseReport.PrintXY(posx+160,posy+22,'Usu Imp.: ' + inttostr(modulo2.nro_usu) + ' - Fec. Imp.:' + strcut(Fec_System(),10));
+     BaseReport.SetFont('Arial',10);
+     BaseReport.FontColor:=clBlack;
+     Rvs.BaseReport.SetFont('Arial Black',9);
+     Rvs.BaseReport.FontColor:=clBlack;
+     Rvs.BaseReport.PrintXY(posfx+34,posfy+17,'LISTA DE ACCIONES CON TITULARES INCOMPLETOS');
+     Logo:=posy+19;
+   end;
+   end;
+
+  Function GrillaCabecera(posx,posy:double;texto:string):double;
+  var t:integer;
+  begin
+     with RvS do begin
+      BaseReport.Rectangle(posx+2,posy,posx+200,posy+5);
+      for t:=1 to length(Camp)-1 do begin
+      BaseReport.Rectangle(posx + PosH[t]-2,posy,posx + PosH[t]-2,posy+5);
+      end;
+     end;
+      Rvs.BaseReport.SetFont('Arial Black',6);
+      Rvs.BaseReport.FontColor:=clBlack;
+      for t:=0 to length(Camp)-1 do begin
+        Rvs.BaseReport.PrintXY(posx + PosH[t],posy+4,TxtCamp[t]);
+     end;
+  Result:=posy+5;
+  end;
+
+  /// Grilla Detalle
+  Function GrillaDetalle(posx,posy:double;texto:string):double;
+  var t:integer;
+  begin
+  Rvs.BaseReport.SetFont('Arial',7);
+  Rvs.BaseReport.FontColor:=clBlack;
+    for t:=0 to length(Camp)-1 do
+     Rvs.BaseReport.PrintXY(posx + PosH[t],posy+4,HackTable(FindComponent(texto)).Fields[Camp[t]].AsString);
+    Result:=posy+4;
+  end;
+
+  //// Grilla Recuadro
+  Function GrillaRecuadro(posx,posy,posy2:double):double;
+  var t:integer;
+  begin
+  with RvS do begin
+    BaseReport.Rectangle(posx+2,posy,posx+200,posy2);
+    for t:=1 to length(Camp)-1 do begin
+      BaseReport.Rectangle(posx + PosH[t]-2,posy,posx + PosH[t]-2,posy2);
+    end;
+  Result:=posy+4;
+  end;
+  end;
+
+begin
+ try
+  posfx:=1.5;posfy:=2;
+  salto:=4;final:=0;hoja:=1;
+  posfy:=Logo(posfx,posfy,hoja);
+
+  Camp[0]:=0; Camp[1]:=1; Camp[2]:=2;  Camp[3]:=3;
+
+  TxtCamp[0]:='NroAccion';  TxtCamp[1]:='NroDNI'; TxtCamp[2]:='Titular';  TxtCamp[3]:='NivelTitular';
+
+  PosH[0]:=3;   PosH[1]:=20;  PosH[2]:=54;  PosH[3]:=130;
+
+  T8.Close;
+  T8.CloneCursor(DataSetC,false,true);
+  txt:='T8';
+  final:=GrillaCabecera(posfx,posfy+5,txt);
+  posfy:=final;
+  pso:=false;
+
+  for y:=1 to HackTable(findcomponent(txt)).RecordCount do begin
+    HackTable(FindComponent(txt)).RecNo:=y;
+    if pso then Rvs.BaseReport.Rectangle(posfx+2,posfy+1,posfx+200,posfy+1)
+    else pso:=true;
+    posfy:=GrillaDetalle(posfx,posfy,txt);
+    if posfy > 280 then begin
+      posfy:=GrillaRecuadro(posfx,final,posfy+2);
+      posfx:=1.5;
+      posfy:=2;
+      hoja:=hoja+1;
+      RvS.BaseReport.NewPage;
+      posfy:=Logo(posfx,posfy,hoja);
+      final:=GrillaCabecera(posfx,posfy+5,txt);
+      posfy:=final;pso:=false;
+    end;
+  end;
+  if pso then posfy:=GrillaRecuadro(posfx,final,posfy+2);
+      
+  except
+ end;
+end;
+
+end.

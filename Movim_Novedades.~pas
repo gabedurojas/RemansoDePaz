@@ -1,0 +1,435 @@
+unit Movim_Novedades;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, JvExButtons, JvBitBtn, StdCtrls, Buttons, ComCtrls, ToolWin,
+  Grids, DBGrids, ExtCtrls, Mask, JvgGroupBox, DBCtrls, Unidad, DBClient,
+  WSDLIntf, ClaseFunciones, StrUtils, DB, ClaseSistemas, ImgList, LMDCustomButton,
+   LMDButton, JvSimLogic,
+  ADODB,JvExGrids, JvStringGrid, RpDefine, RpBase, RpSystem, TeEngine,
+  TeeTools, TeeLegendScrollBar, Series, TeeProcs, Chart;
+
+type LosEdit = class(TEdit);
+type HackTable = class(TADOTable);
+type
+  TMov_NovAcciones = class(TForm)
+    Barra1: TStatusBar;
+    ToolBar1: TToolBar;
+    ToolButton4: TToolButton;
+    ToolButton2: TToolButton;
+    ToolButton3: TToolButton;
+    JvBitBtn1: TJvBitBtn;
+    PC1: TPageControl;
+    TabSheet1: TTabSheet;
+    Buscar: TJvBitBtn;
+    GroupBox1: TGroupBox;
+    ImageList1: TImageList;
+    print: TButton;
+    RvS: TRvSystem;
+    T9: TClientDataSet;
+    Image1: TImage;
+    DataSource2: TDataSource;
+    exporta: TButton;
+    RE5: TRichEdit;
+    FECNAC: TMaskEdit;
+    R1: TRadioButton;
+    R2: TRadioButton;
+    PageControl1: TPageControl;
+    TabSheet2: TTabSheet;
+    TabSheet3: TTabSheet;
+    DBGrid1: TDBGrid;
+    DataSource1: TDataSource;
+    DBGrid2: TDBGrid;
+    Image3: TImage;
+    TabSheet4: TTabSheet;
+    Grafico2: TChart;
+    ChartTool1: TLegendScrollBar;
+    ChartTool2: TDragMarksTool;
+    BarSeries1: THorizBarSeries;
+    Grilla1: TStringGrid;
+    accion: TEdit;
+    procedure FormActivate(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure Coloca1(nro:byte);
+    procedure JvBitBtn1Click(Sender: TObject);
+    procedure BuscarClick(Sender: TObject);
+    procedure printClick(Sender: TObject);
+    procedure RvSPrint(Sender: TObject);
+    procedure exportaClick(Sender: TObject);
+    procedure FECNACExit(Sender: TObject);
+    procedure FECNACKeyPress(Sender: TObject; var Key: Char);
+    procedure R1Click(Sender: TObject);
+    procedure R2Click(Sender: TObject);
+    procedure anioKeyPress(Sender: TObject; var Key: Char);
+    procedure accionKeyPress(Sender: TObject; var Key: Char);
+    procedure accionExit(Sender: TObject);
+  private
+    IdCombos:array of array of string;
+    IdPagos:array of array of string;
+    PosSelec,PosPv,pagos,pagosp:integer;
+    DataSet0,DataSet1,DtCombo,DtComboComp,DataSet2:TClientDataSet;
+    Funciones:TFuncionesVarias;
+    Sistemas:TSistemas;
+    sumapos,sumaimp,sumatot:double;
+    habventana:boolean;
+    FechaActual,MotAnula,FecAnula,elbanco,elcheque,bank,letracheque,cheque,elmes,elanio:string;
+    TiposFormularios,TiposObjetos,TiposComprobantes:Unidad.TablaXML;{ Private declarations }
+  public
+    gh:boolean;{ Public declarations }
+    PosH:Array [0..5] of Double;
+    Camp:Array [0..5] of Integer;
+    TxtCamp:Array [0..5] of String;
+
+  end;
+
+var
+  Mov_NovAcciones: TMov_NovAcciones;
+
+implementation
+
+uses Modulo, Busqueda, Anula_Generica,AM_TalonCobro,DatosCheque,SelecPagos;
+
+{$R *.dfm}
+
+procedure TMov_NovAcciones.FormActivate(Sender: TObject);
+begin
+if not(gh) then begin
+  gh:=true;
+  setlength(IdCombos,5);
+  PosPv:=0;
+  grafico2.Series[0].Clear;
+  FechaActual:=LeftStr(Fec_System(),10);
+  PC1.ActivePage:=PC1.Pages[0];
+  PageControl1.ActivePage:=PageControl1.Pages[0];
+  fecnac.Text:=FechaActual;
+  ElMes:=strcut_midle(FechaActual,4,5);
+  ElAnio:=RightStr(FechaActual,4);
+  print.Enabled:=false;
+  exporta.Enabled:=false;
+  accion.Visible:=false;
+  r1.SetFocus;
+end;
+end;
+
+procedure TMov_NovAcciones.FormCreate(Sender: TObject);
+begin
+gh:=false;
+end;
+
+procedure TMov_NovAcciones.Coloca1(nro:byte);
+var t,ta,tn,x,a:integer;
+    NroDni,ValNull,SubCob:variant;
+    txt,txt1,NroCompr,anulados:string;
+    txtw:widestring;
+    tot:real;
+    suma:double;
+begin
+if nro=4 then begin //Datos de las facturas acumuladas
+    grafico2.Series[0].Clear;
+    grafico2.BottomAxis.Maximum:=7;
+    grafico2.BottomAxis.Minimum:=0;
+    grafico2.Title.Text.Clear;
+    grafico2.BottomAxis.Title.Font.Size:=14;
+    grafico2.BottomAxis.Title.Caption:='Cantidades';
+    grafico2.LeftAxis.Title.Font.Size:=14;
+    grafico2.LeftAxis.Title.Caption:='Novedades Resueltas';
+    grafico2.Title.Font.Size:=14;
+    grafico2.Title.Text.Add('Valores');
+
+  DataSet2.Free;
+  DataSet2:=TClientdataSet.Create(nil);
+  DataSource2.DataSet:=DataSet2;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  if r1.Checked=true then begin
+  txtw:='SELECT case when Resuelto=0 then ''NO'' else ''SI'' end as NovedadesResueltas ,'
+   + ' COUNT(Resuelto)  as CantNovedades FROM ParcelasNovedades where (CONVERT(char(10),fechaalta,103)='+ chr(39) + trim(fecnac.Text) + chr(39) +') group by Resuelto';
+  end;
+  if r2.Checked=true then begin
+  txtw:='SELECT case when Resuelto=0 then ''NO'' else ''SI'' end as NovedadesResueltas ,'
+   + ' COUNT(Resuelto)  as CantNovedades FROM ParcelasNovedades where (Nroaccion='+ trim(accion.Text)+') group by Resuelto';
+  end;
+  if not Funciones.Listar(txtw,DataSet2) then
+     messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',
+       mtError,[mbok],0)
+  else begin
+      if DataSet2.RecordCount > 0 then begin
+       for a:=1 to DataSet2.RecordCount do begin
+         DataSet2.RecNo:=a;
+         grilla1.RowCount:=a+1;
+         grilla1.Cells[0,a]:=trim(DataSet2.Fields[0].asstring);
+         grilla1.Cells[1,a]:=trim(DataSet2.Fields[1].AsString);
+         grafico2.Series[0].Add(DataSet2.Fields[1].AsFloat,inttostr(a),536870912);
+       end;
+      end;
+  end;
+    Funciones.Free;
+end;
+if nro = 6 then begin
+  DtComboComp.Free;
+  DtComboComp:=TClientdataSet.Create(nil);
+  DataSource1.DataSet:=DtComboComp;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  if r1.Checked=true then begin
+  txtw:='SELECT row_number() over (order by Nroaccion asc) as Orden,Nroaccion,Novedad,case when Resuelto=0 then ''NO'' else ''SI'' end as Resuelto,CONVERT(char(10),fechaalta,103) AS FechaCarga, '
+  + ' CONVERT(char(10),fecharesuelto,103) AS Fecharesuelto FROM ParcelasNovedades where (CONVERT(char(10),fechaalta,103)='+ chr(39) + trim(fecnac.Text) + chr(39) +') ';
+  end;
+  if r2.Checked=true then begin
+  txtw:='SELECT row_number() over (order by Nroaccion asc) as Orden,Nroaccion,Novedad,case when Resuelto=0 then ''NO'' else ''SI'' end as Resuelto,CONVERT(char(10),fechaalta,103) AS FechaCarga, '
+  + ' CONVERT(char(10),fecharesuelto,103) AS Fecharesuelto FROM ParcelasNovedades where (Nroaccion='+ trim(accion.Text)+') ';
+  end;
+  if not Funciones.Listar(txtw,DtComboComp) then
+     messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',
+       mtError,[mbok],0)
+  else begin
+      if DtComboComp.RecordCount > 0 then begin
+       dbgrid1.Columns[0].Width:=50;
+       dbgrid1.Columns[1].Width:=60;
+       dbgrid1.Columns[2].Width:=350;
+       print.Enabled :=true;
+      end;
+  end;
+end;
+end;
+
+procedure TMov_NovAcciones.JvBitBtn1Click(Sender: TObject);
+begin
+Close;
+end;
+
+procedure TMov_NovAcciones.BuscarClick(Sender: TObject);
+begin
+Coloca1(6);
+Coloca1(4);
+end;
+
+procedure TMov_NovAcciones.printClick(Sender: TObject);
+begin
+rvs.Execute;
+end;
+
+procedure TMov_NovAcciones.RvSPrint(Sender: TObject);
+var posfx,posfy,final,salto:double;
+var t,y,hoja,nro:integer;
+var txtw:string;
+var pso:boolean;
+//var txt:widestring;
+
+ Function Logo(posx,posy:double;vaf:integer):double;
+   var Imagen1,MarcaAgua:TBitMap;
+       PathLogo,PathLogo1:string;
+   begin
+   with RvS do begin
+     Imagen1 := TBitMap.Create;
+     PathLogo:=modulo2.path_todo + '\Imagenes\' + modulo2.INI1.ReadString('Resumen Caja','Imagen1','');
+     if FileExists(PathLogo) then begin
+       Image1.Picture.LoadFromFile(PathLogo);
+       Imagen1.Assign(Image1.Picture.Graphic);
+       BaseReport.PrintBitmapRect(posx+6,posy+2,posx+30,posy+22,Imagen1);
+     end;
+     Imagen1.Free;
+     BaseReport.Rectangle(posx+2,posy+1,posx+275,posy+23);
+     BaseReport.SetFont('Arial Black',9);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.PrintXY(posx+34,posy+5,'CARMELO MONTE S.A. Servicios & Mandatos');
+     BaseReport.SetFont('Arial Black',8);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.PrintXY(posx+34,posy+9,modulo2.INI1.ReadString('Resumen Planillas','Titulo2',''));
+     BaseReport.SetFont('Arial',7);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.PrintXY(posx+149,posy+22,'Pág.: ' + inttostr(vaf));
+     BaseReport.PrintXY(posx+160,posy+22,'Usu Imp.: ' + inttostr(modulo2.nro_usu) + ' - Fec. Imp.:' + strcut(Fec_System(),10));
+     BaseReport.SetFont('Arial',10);
+     BaseReport.FontColor:=clBlack;
+     Rvs.BaseReport.SetFont('Arial Black',9);
+     Rvs.BaseReport.FontColor:=clBlack;
+     if r1.Checked then Rvs.BaseReport.PrintXY(posfx+34,posfy+17,'LISTA DE NOVEDADES DEL DIA: ' + trim(fecnac.Text))
+        else Rvs.BaseReport.PrintXY(posfx+34,posfy+17,'LISTA DE NOVEDADES DE LA ACCION Nro: '+ trim(accion.Text));
+     Logo:=posy+25;
+   end;
+   end;
+
+  Function GrillaCabecera(posx,posy:double;texto:string):double;
+  var t:integer;
+  begin
+     with RvS do begin
+      BaseReport.Rectangle(posx+2,posy,posx+275,posy+5);
+      for t:=1 to length(Camp)-1 do begin
+      BaseReport.Rectangle(posx + PosH[t]-2,posy,posx + PosH[t]-2,posy+5);
+      end;
+     end;
+      Rvs.BaseReport.SetFont('Arial Black',6);
+      Rvs.BaseReport.FontColor:=clBlack;
+      for t:=0 to length(Camp)-1 do begin
+        Rvs.BaseReport.PrintXY(posx + PosH[t],posy+4,TxtCamp[t]);
+     end;
+  Result:=posy+5;
+  end;
+
+  /// Grilla Detalle
+  Function GrillaDetalle(posx,posy:double;texto:string):double;
+  var t:integer;
+  begin
+  Rvs.BaseReport.SetFont('Arial',9);
+  Rvs.BaseReport.FontColor:=clBlack;
+    for t:=0 to length(Camp)-1 do
+     Rvs.BaseReport.PrintXY(posx + PosH[t],posy+4,HackTable(FindComponent(texto)).Fields[Camp[t]].AsString);
+    Result:=posy+4;
+  end;
+
+  //// Grilla Recuadro
+  Function GrillaRecuadro(posx,posy,posy2:double):double;
+  var t:integer;
+  begin
+  with RvS do begin
+    BaseReport.Rectangle(posx+2,posy,posx+275,posy2);
+    for t:=1 to length(Camp)-1 do begin
+      BaseReport.Rectangle(posx + PosH[t]-2,posy,posx + PosH[t]-2,posy2);
+    end;
+  Result:=posy+4;
+  end;
+  end;
+
+begin
+ try
+  posfx:=1.5;
+  posfy:=2;
+  salto:=4;
+  final:=0;
+  hoja:=1;
+  posfy:=Logo(posfx,posfy,hoja);
+  Camp[0]:=0; Camp[1]:=1; Camp[2]:=2;  Camp[3]:=3;
+  Camp[4]:=4; Camp[5]:=5;
+
+  TxtCamp[0]:='Orden';  TxtCamp[1]:='NroAccion'; TxtCamp[2]:='Novedad';  TxtCamp[3]:='Resuelto';
+  TxtCamp[4]:='Fecha Nov.';  TxtCamp[5]:='Fec.Resuleto';
+  PosH[0]:=3;   PosH[1]:=20;  PosH[2]:=35;  PosH[3]:=210;  PosH[4]:=245;   PosH[5]:=260;
+  T9.Close;
+  T9.CloneCursor(DtComboComp,false,true);
+  txtw:='T9';
+  final:=GrillaCabecera(posfx,posfy+5,txtw);
+  posfy:=final;
+  pso:=false;
+
+      for y:=1 to HackTable(findcomponent(txtw)).RecordCount do begin
+        HackTable(FindComponent(txtw)).RecNo:=y;
+        if pso then Rvs.BaseReport.Rectangle(posfx+2,posfy+1,posfx+275,posfy+1)
+        else pso:=true;
+        posfy:=GrillaDetalle(posfx,posfy,txtw);
+        if posfy > 250 then begin
+          posfy:=GrillaRecuadro(posfx,final,posfy+2);
+          posfx:=1.5;
+          posfy:=2;
+          hoja:=hoja+1;
+          RvS.BaseReport.NewPage;
+          posfy:=Logo(posfx,posfy,hoja);  // llamamos al encabezado
+          final:=GrillaCabecera(posfx,posfy+5,txtw);
+          posfy:=final;pso:=false;
+        end;
+      end;
+//            Rvs.BaseReport.SetFont('Arial Black',9);
+//            Rvs.BaseReport.FontColor:=clBlack;
+//            Rvs.BaseReport.PrintXY(posfx+140,posfy+8,'Total Planillas :  $'+ floattostr(sumaimp));
+//            Rvs.BaseReport.PrintXY(posfx+140,posfy+13,'Total Posnet :    $'+ floattostr(sumapos));
+//            Rvs.BaseReport.PrintXY(posfx+140,posfy+18,'Total Efectivo:   $'+ floattostr(sumatot));
+//            if pso then posfy:=GrillaRecuadro(posfx,final,posfy+2);
+//            Rvs.BaseReport.NewPage;
+ except
+ end;
+end;
+
+
+procedure TMov_NovAcciones.exportaClick(Sender: TObject);
+var texto:widestring;
+var txt:string;
+var t,y:integer;
+begin
+RE5.Clear;
+texto:='';
+
+RE5.Lines.Add('');
+
+RE5.Lines.Add('Novedades Cargadas');
+for t:=0 to DtComboComp.FieldCount-1 do begin
+  texto:=texto + DtComboComp.Fields[t].FieldName + chr(9);
+end;
+RE5.Lines.Add(texto);
+for y:=1 to DtComboComp.RecordCount do begin
+  DtComboComp.RecNo:=y;
+  texto:='';
+  for t:=0 to DtComboComp.FieldCount-1 do begin
+    texto:=texto + DtComboComp.Fields[t].AsString + chr(9);
+  end;
+  RE5.Lines.Add(texto);
+end;
+
+RE5.SelectAll;
+RE5.CopyToClipboard;
+messagedlgpos('Se Copiaron los Datos listo para pegarlos a Excel',mtwarning,[mbok],0,screen.Width div 3,screen.Height div 3);
+end;
+
+
+procedure TMov_NovAcciones.FECNACExit(Sender: TObject);
+var kl:Tdatetime;
+begin
+try
+  kl:=strtodate(trim(FECNAC.Text));
+except
+  messagedlg('La Fecha Ingresada No es Válida',mterror,[mbok],0);
+  FECNAC.SetFocus;
+end;
+end;
+
+procedure TMov_NovAcciones.FECNACKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+  buscar.SetFocus;
+end;
+end;
+
+procedure TMov_NovAcciones.R1Click(Sender: TObject);
+begin
+accion.Visible:=false;
+fecnac.Visible:=true;
+fecnac.SetFocus;
+end;
+
+procedure TMov_NovAcciones.R2Click(Sender: TObject);
+begin
+fecnac.Visible:=false;
+accion.Visible:=true;
+accion.SetFocus;
+end;
+
+procedure TMov_NovAcciones.anioKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+end;
+end;
+
+procedure TMov_NovAcciones.accionKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+  buscar.SetFocus;
+end;
+end;
+
+procedure TMov_NovAcciones.accionExit(Sender: TObject);
+begin
+if trim(accion.Text)='00000' then accion.Text:='';
+//if trim(accion.Text)='0' then dni.Text:='00000000';
+
+if trim(accion.Text) = '' then begin
+  messagedlg('ERROR!!... El N° de Accion no puede tener el valor 0 (Cero)'
+  ,mterror,[mbok],0);
+  accion.SetFocus;
+end;
+end;
+
+end.

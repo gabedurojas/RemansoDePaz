@@ -1,0 +1,269 @@
+unit VerImages;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, Mask, DBCtrls, StdCtrls, LMDCustomButton, LMDButton, Grids,
+  DBGrids, DB, ADODB, Buttons, JvExForms, JvBaseThumbnail, JvThumbViews,
+  ComCtrls, LMDCustomControl, LMDCustomPanel, LMDCustomBevelPanel,
+  LMDCustomParentPanel, LMDCustomGroupBox, LMDGroupBox,StrUtils, ExtCtrls,
+  ImgList;
+
+type
+  TVerImagenes = class(TForm)
+    GroupBox1: TGroupBox;
+    Label14: TLabel;
+    Label1: TLabel;
+    Label2: TLabel;
+    DNI: TEdit;
+    Busca4: TLMDButton;
+    D1: TDBEdit;
+    D4: TDBEdit;
+    DAFILIADO: TDataSource;
+    AFILIADOS: TADOTable;
+    DATOS: TADOTable;
+    DataSource1: TDataSource;
+    PC1: TPageControl;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    GroupBox2: TGroupBox;
+    Label3: TLabel;
+    DBGrid1: TDBGrid;
+    VerImagen: TBitBtn;
+    DatoImagen: TEdit;
+    TV: TJvThumbView;
+    GroupBox3: TGroupBox;
+    LMDGroupBox1: TLMDGroupBox;
+    Label19: TLabel;
+    Label21: TLabel;
+    Label22: TLabel;
+    Label25: TLabel;
+    PSX1: TEdit;
+    PSL1: TEdit;
+    PSA1: TEdit;
+    PSY1: TEdit;
+    LMDGroupBox4: TLMDGroupBox;
+    RV: TRadioButton;
+    RH: TRadioButton;
+    IMPRIME7: TLMDButton;
+    LMDGroupBox2: TLMDGroupBox;
+    DN: TRadioButton;
+    RS: TRadioButton;
+    BS: TRadioButton;
+    CP: TRadioButton;
+    Otros: TRadioButton;
+    NR: TRadioButton;
+    ImageList1: TImageList;
+    procedure Grillas(nro:byte);
+    procedure Busca4Click(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure DNIExit(Sender: TObject);
+    procedure DNIKeyPress(Sender: TObject; var Key: Char);
+    procedure DBGrid1CellClick(Column: TColumn);
+    procedure VerImagenClick(Sender: TObject);
+    procedure TVClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+  image:string;
+    { Public declarations }
+  end;
+
+var
+  VerImagenes: TVerImagenes;
+
+implementation
+
+uses Menu, Unidad, Busqueda,BusImg;
+
+
+{$R *.dfm}
+
+
+procedure TVerImagenes.Grillas(nro:byte);
+var t,y:integer;
+begin
+if nro = 1 then begin
+     DATOS.Close;
+     modulo2.Com1.CommandText:='SELECT CUIF,Nombre FROM '
+       + 'VistaLosAfiliados WHERE (DNI=' + trim(DNI.Text) + ');';
+       DATOS.Recordset:=modulo2.Com1.Execute;
+       DATOS.Open;
+       if DATOS.RecordCount > 0 then begin
+          D1.DataField:='CUIF';
+          D4.DataField:='Nombre';
+       end;
+end;
+if nro = 2 then begin
+     AFILIADOS.Close;
+       modulo2.Com1.CommandText:='SELECT Nropuesto,NombreArchivo,Nrotipo,Motivo,Observaciones,'
+       + ' Fecha_a as FechaDeImagen,HashFile  FROM AfiliadosImagenes WHERE (cuif=' + trim(D1.Text) + ');';  //,HashFile
+     AFILIADOS.Recordset:=modulo2.Com1.Execute;
+     AFILIADOS.Open;
+       DBGrid1.Columns[0].Width:=70;
+       DBGrid1.Columns[1].Width:=80;
+       DBGrid1.Columns[2].Width:=40;
+       DBGrid1.Columns[3].Width:=200;
+       DBGrid1.Columns[4].Width:=200;
+       DBGrid1.Columns[5].Width:=100;
+       DBGrid1.Columns[6].Width:=200;
+
+end;
+end;
+
+procedure TVerImagenes.Busca4Click(Sender: TObject);
+var LA_BUSQUEDA: TLA_BUSQUEDA;
+begin
+LA_BUSQUEDA:= TLA_BUSQUEDA.create(self);
+LA_BUSQUEDA.NroOpcion:=1;
+try
+  LA_BUSQUEDA.Caption:='Buscando el Afiliado';
+  LA_BUSQUEDA.ShowModal;
+  DNI.Text:=LA_BUSQUEDA.DB2.Text;
+  d1.Text:=LA_BUSQUEDA.DB1.Text;
+  d4.Text:=LA_BUSQUEDA.DB5.Text;
+finally
+  LA_BUSQUEDA.destroy;
+  grillas(2);
+  //cargao el thumbview con las imagenes de la carpeta
+  tv.Directory:=modulo2.path_todo + '\Tmp\' + trim(d1.Text);  //
+end;
+  if (trim(DNI.Text) = '') or (trim(dni.Text) = '00000000') then begin
+     messagedlgpos('Debe Seleccionar un Nº de Carnet CORRECTO!!!',mtError,[mbok],0,screen.Width div 3,screen.Height div 3);
+     DNI.SetFocus;
+  end
+  else begin
+    DNI.SetFocus;
+  end;
+end;
+
+procedure TVerImagenes.FormActivate(Sender: TObject);
+begin
+AFILIADOS.Connection:=modulo2.Coneccion;
+datos.Connection:=modulo2.Coneccion;
+PC1.ActivePage:=PC1.Pages[0];
+end;
+
+procedure TVerImagenes.DNIExit(Sender: TObject);
+begin
+  if (trim(DNI.Text) = '') or (trim(dni.Text) = '00000000') then begin
+     messagedlgpos('Debe Seleccionar un Nº de Carnet CORRECTO!!!',mtError,[mbok],0,screen.Width div 3,screen.Height div 3);
+     //DNI.SetFocus;
+     busca4.Click;
+  end
+  else begin
+  //  DNI.SetFocus;
+    grillas(1);
+    grillas(2);
+    tv.Directory:=modulo2.path_todo + '\Tmp\' + trim(d1.Text);
+    if DATOS.RecordCount = 0 then Busca4.SetFocus;
+  end;
+//grillas(1);
+//grillas(2);
+//tv.Directory:=modulo2.path_todo + '\Tmp\' + trim(d1.Text);
+//if DATOS.RecordCount = 0 then Busca4.SetFocus;
+end;
+
+procedure TVerImagenes.DNIKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  if (trim(DNI.Text) <> '') then begin
+     grillas(1);
+     grillas(2);
+     tv.Directory:=modulo2.path_todo + '\Tmp\' + trim(d1.Text);
+  end
+  else begin
+    messagedlgpos('ERROR!! No Existe el DNI Ingresado!',mterror,[mbok],0,screen.Width div 3,screen.Height div 3);
+    DNI.Text:='00000000';
+  end;
+end;
+end;
+
+procedure TVerImagenes.DBGrid1CellClick(Column: TColumn);
+var hash:string;
+begin
+datoimagen.Text:=afiliados.Fields[1].AsString;
+hash:=trim(afiliados.Fields[6].AsString);
+verimagen.Enabled:=true;
+verimagen.SetFocus;
+end;
+{
+  modulo2.FTP.Connect;
+  modulo2.FTP.ChangeDir('Imagenes');  // carpeta del ftp
+  modulo2.FTP.ChangeDir(trim(d1.text));// me meto adentro y busco esta carpeta (cuif)
+  //Peri:=trim(grilla2.Cells[9,grilla2.row]);// el mes
+  try
+  //  modulo2.FTP.ChangeDir(Peri);
+    modulo2.FTP.Get(trim(dni.Text)+ '.jpg',modulo2.path_todo + '\tmp\' + trim(dni.Text) + '.jpg', true);
+    Image2.Picture.LoadFromFile(modulo2.path_todo + '\tmp\' + trim(dni.Text)+ '.jpg');
+    numtaxi.Enabled:=true;
+    taxi.SetFocus;
+  except
+    Image2.Picture:=nil;
+    messagedlgpos('Error!! No se puede obtener la Fotos de dicho Movimiento.' + chr(13)
+       + 'Consulte con el Administrador.',mterror,[mbok],0,screen.Width div 3,screen.Height div 3);
+  end;
+  modulo2.FTP.Disconnect;
+end;}
+
+procedure TVerImagenes.VerImagenClick(Sender: TObject);
+var BuscaImagen: TBuscaImagen;
+//var Peri,image,nombre:string;
+var vr2:widestring;
+begin
+{   modulo2.FTP.Connect;
+    modulo2.FTP.ChangeDir('Tmp');  // carpeta del ftp
+    modulo2.FTP.ChangeDir(trim(d1.text));// me meto adentro y busco esta carpeta (cuif)
+    peri:=trim(d1.Text);// el cuif
+    try
+          peri:=trim(d1.Text);// el cuif
+          modulo2.FTP.ChangeDir(Peri);
+          modulo2.FTP.Get(trim(datoimagen.Text),modulo2.path_todo + '\Tmp\' + trim(d1.Text) + '\' + trim(datoimagen.Text), true);
+          //Image2.Picture.LoadFromFile(modulo2.path_todo + '\Tmp\' + trim(datoimagen.Text) + '.jpg');
+          // image:=tv.SelectedFile;
+    except
+          //Image2.Picture:=nil;
+          messagedlgpos('Error!! No se puede obtener la Fotos de dicho Movimiento.' + chr(13)
+             + 'Consulte con el Administrador.',mterror,[mbok],0,screen.Width div 3,screen.Height div 3);
+    end;
+     modulo2.FTP.Disconnect;
+     BuscaImagen:= TBuscaImagen.Create(self);
+     BuscaImagen.Vr3:=trim(d1.Text);   }
+     modulo2.SetearFTP(True);
+     BuscaImagen:= TBuscaImagen.Create(self);
+    try
+      Vr2:=trim(datoimagen.Text);
+      //mod1.ExtraerArchivoFTP(L3.Text + '.jpg',mod1.path_todo + '\tmp\' + L3.Text + '.jpg','Fotos/' + LeftStr(PERSONAL.Fields[9].AsString,4) + '/' + PERSONAL.Fields[9].AsString);
+      //modulo2.ExtraerArchivoFTP(Vr1,)
+      modulo2.ExtraerArchivoFTP(datoimagen.Text + '.jpg',modulo2.path_todo + '\Tmp\' + datoimagen.Text + '.jpg','');
+      BuscaImagen.Vr1:=modulo2.path_todo + '\Tmp\' + trim(d1.Text) + '\' + trim(datoimagen.Text);
+      //BuscaImagen.Vr1:=trim(modulo2.ExtraerArchivoFTP(trim(datoimagen.Text),modulo2.path_todo + '\Tmp\' + trim(d1.Text),''));
+      BuscaImagen.ShowModal;
+    finally
+      BuscaImagen.destroy;
+    end;
+end;
+
+procedure TVerImagenes.TVClick(Sender: TObject);
+var BuscaImagen: TBuscaImagen;
+var nombre:string;
+begin
+     image:=tv.SelectedFile;
+     nombre:=extractfilename(image);
+     if LeftStr(trim(nombre),2) = 'DN' then dn.Checked:=true;
+     if LeftStr(trim(nombre),2) = 'RS' then rs.Checked:=true;
+     if LeftStr(trim(nombre),2) = 'CP' then cp.Checked:=true;
+     if LeftStr(trim(nombre),2) = 'BS' then bs.Checked:=true;
+     if LeftStr(trim(nombre),2) = 'OT' then otros.Checked:=true;
+     if LeftStr(trim(nombre),2) = 'NR' then nr.Checked:=true;
+     BuscaImagen:= TBuscaImagen.Create(self);
+    try
+      BuscaImagen.Vr1:=trim(image);
+      BuscaImagen.ShowModal;
+    finally
+      BuscaImagen.destroy;
+    end;
+end;
+
+end.

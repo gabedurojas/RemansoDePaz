@@ -1,0 +1,87 @@
+object SelGestor: TSelGestor
+  Left = 413
+  Top = 333
+  Width = 523
+  Height = 113
+  Caption = 'Seleccion de Gestor'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poDesktopCenter
+  OnActivate = FormActivate
+  OnClose = FormClose
+  OnCreate = FormCreate
+  DesignSize = (
+    507
+    74)
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Label19: TLabel
+    Left = 13
+    Top = 9
+    Width = 46
+    Height = 13
+    Caption = 'Cobrador:'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'MS Sans Serif'
+    Font.Style = []
+    ParentFont = False
+  end
+  object Label1: TLabel
+    Left = 368
+    Top = 34
+    Width = 9
+    Height = 13
+    Caption = '...'
+  end
+  object COBRADOR: TComboBox
+    Left = 15
+    Top = 29
+    Width = 347
+    Height = 21
+    CharCase = ecUpperCase
+    ItemHeight = 13
+    TabOrder = 0
+    OnExit = COBRADORExit
+    OnKeyPress = COBRADORKeyPress
+  end
+  object sale: TJvBitBtn
+    Left = 404
+    Top = 18
+    Width = 89
+    Height = 35
+    Anchors = [akTop, akRight]
+    Caption = 'Salir'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -8
+    Font.Name = 'Arial'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 1
+    OnClick = saleClick
+    Glyph.Data = {
+      42010000424D4201000000000000760000002800000013000000110000000100
+      040000000000CC0000000000000000000000100000001000000000000000A584
+      0000FFDE5200007B7B0000FFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00111111111111
+      1111111000001111111111111111111000001111105111111111111000001111
+      1005111111111110000011111040511111111110000011111104051111111110
+      0000111111034051111111100000111111103405111111100000111555503440
+      5111111000001110000003440511111000001111034444333051111000001111
+      1034440000011110000011111103444051111110000011111110344405111110
+      0000111111110333305111100000111111111000000511100000111111111111
+      111111100000}
+    HotTrackFont.Charset = DEFAULT_CHARSET
+    HotTrackFont.Color = clWindowText
+    HotTrackFont.Height = -8
+    HotTrackFont.Name = 'Arial'
+    HotTrackFont.Style = []
+  end
+end

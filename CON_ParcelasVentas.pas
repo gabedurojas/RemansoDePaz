@@ -1,0 +1,211 @@
+unit CON_ParcelasVentas;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs,DBClient, StdCtrls, LMDCustomButton, LMDButton, DBCtrls, Grids,
+  DBGrids, ComCtrls, StrUtils, DB, Mask,  ADODB, Buttons, ExtCtrls,
+  ClaseSistemas, LMDCustomComponent, LMDContainerComponent, LMDMsg,WSDLIntf,
+  ClaseParcelasVentas,ClaseParcelasVentasDeudas;
+
+type THackStringGrid = class(TStringGrid);
+type
+  TCON_VPAR = class(TForm)
+    Barra1: TStatusBar;
+    DataSource1: TDataSource;
+    grupo1: TGroupBox;
+    LB1: TLabel;
+    Bevel2: TBevel;
+    DBGrid1: TDBGrid;
+    RD: TRadioButton;
+    GroupBox2: TGroupBox;
+    RT: TRadioButton;
+    SALE: TBitBtn;
+    PC1: TPageControl;
+    TabSheet2: TTabSheet;
+    Dialogo: TLMDMessageBoxDlg;
+    Busca: TLMDButton;
+    GroupBox1: TGroupBox;
+    grilla2: TStringGrid;
+    ODNI: TEdit;
+    IDVenta: TEdit;
+    procedure Coloca1(nro:byte);
+    procedure BuscaClick(Sender: TObject);
+    procedure Grillas(nro:byte);
+    procedure FormActivate(Sender: TObject);
+    procedure RDClick(Sender: TObject);
+    procedure DBGrid1CellClick(Column: TColumn);
+    procedure RTClick(Sender: TObject);
+  private
+    control:boolean;{Controla que no hubiere errores en la carga de datos}
+    { Private declarations }
+  public
+    Resultado: string;
+    // aca instancio la clase si la clase esta definida en el uses de la ventana
+    Sistema:TSistemas;
+    ParcelaVentas:TParcelasVentas;
+    ParcelaVentaDeudas:TParcelasVentasDeudas;
+    //////////
+
+    DataSet,datasetD:TClientDataSet; //declaro el DAtaset
+    DSGral:TClientDataSet;//declaro el DAtaset de la grilla
+    IdCombos:array of array of string;
+
+  end;
+
+var
+  CON_VPAR: TCON_VPAR;
+
+implementation
+
+uses Unidad, Modulo,Busqueda;
+
+{$R *.dfm}
+
+procedure TCON_VPAR.FormActivate(Sender: TObject);
+begin
+//PC1.ActivePage:=PC1.Pages[0];
+//grilla2.Cells[0,0]:='Orden';
+//Pc1.Images:=modulo2.ImageList1;
+
+grilla2.Cells[0,0]:='Orden';
+grilla2.Cells[1,0]:='Nº Cuota';
+grilla2.Cells[2,0]:='Periodo';
+grilla2.Cells[3,0]:='Vencimiento';
+grilla2.Cells[4,0]:='Importe';
+grilla2.Cells[5,0]:='Interes';
+grilla2.Cells[6,0]:='Capital';
+grilla2.Cells[7,0]:='Detalle Cuota';
+
+
+
+
+RT.OnClick(sender);
+BUSCA.SetFocus;
+//PC1.Enabled:=false;
+end;
+
+procedure TCON_VPAR.Coloca1(nro:byte);
+var t:integer;
+begin
+end;
+
+procedure TCON_VPAR.Grillas(nro:byte);
+var t,y:integer;
+    txt,sex:string;
+    txtw:widestring;
+    Param:TWideStrings;
+begin
+  if nro=1 then begin
+    DataSet.Free;
+    dataset:=TClientdataSet.Create(nil);
+
+    Param:=TWideStrings.Create;
+    DataSource1.DataSet:=Dataset;
+    ParcelaVentas:=TParcelasVentas.Create(nil);
+    ParcelaVentas.ConnectionString:=modulo2.Conexion;
+
+    if RT.Checked = true then
+    begin
+      Param.Add('');
+      Param.Add('');
+    end;
+
+    if RD.Checked = true then
+    begin
+      Param.Add(trim(ODNI.TEXT));
+      Param.Add('');
+    end;
+
+    if not ParcelaVentas.ListarSP(Param,DataSet,0) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+
+    ParcelaVentas.Free;
+    Param.Free;
+  end;
+
+
+  if nro=2 then begin
+    DataSetD.Free;
+    datasetD:=TClientdataSet.Create(nil);
+
+    Param:=TWideStrings.Create;
+
+    ParcelaVentaDeudas:=TParcelasVentasDeudas.Create(nil);
+    ParcelaVentaDeudas.ConnectionString:=modulo2.Conexion;
+
+
+
+      Param.Add('');
+      Param.Add(trim(IDVENTA.text));
+      
+    if not ParcelaVentaDeudas.ListarSP(Param,DataSetD,0) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+
+    ParcelaVentaDeudas.Free;
+    Param.Free;
+
+    for t:=0 to grilla2.ColCount-1 do
+      for y:=1 to grilla2.RowCount-1 do grilla2.Cells[t,y]:='';
+         for t:=1 to datasetD.RecordCount  do begin
+            datasetD.RecNo:=t;
+            grilla2.RowCount:=t+1;
+            grilla2.Cells[0,t]:=completa1(inttostr(t),2,'0');
+            grilla2.Cells[1,t]:=trim(datasetD.Fields[2].AsString);
+            grilla2.Cells[2,t]:=trim(datasetD.Fields[3].AsString);
+            grilla2.Cells[3,t]:=trim(datasetD.Fields[4].AsString);
+            grilla2.Cells[4,t]:=trim(datasetD.Fields[5].AsString);
+            grilla2.Cells[5,t]:=trim(datasetD.Fields[6].AsString);
+            grilla2.Cells[6,t]:=trim(datasetD.Fields[7].AsString);
+            grilla2.Cells[7,t]:=trim(datasetD.Fields[9].AsString);
+
+      end;
+
+
+
+  end;
+end;
+
+procedure TCON_VPAR.BuscaClick(Sender: TObject);
+begin
+Grillas(1);
+if (Datasource1.DataSet.RecordCount = 0) then begin
+  Barra1.Panels[0].Text:='Sin Datos en Grilla';
+end
+else begin
+Barra1.Panels[1].Text:='Registos encontrados: ' + inttostr(Datasource1.DataSet.RecordCount);
+end;
+end;
+
+procedure TCON_VPAR.RDClick(Sender: TObject);
+begin
+LB1.Caption:='Ingrese el N° de Acción:';
+ODNI.Visible:=true;
+ODNI.Text:='00000000';
+Busca.Enabled:=true;
+ODNI.SetFocus;
+end;
+
+
+
+
+procedure TCON_VPAR.DBGrid1CellClick(Column: TColumn);
+begin
+if not (Dataset.IsEmpty) then begin
+  IDVenta.Text:=trim(dataset.Fields[0].AsString);
+  Grillas(2);
+end;
+end;
+
+
+procedure TCON_VPAR.RTClick(Sender: TObject);
+begin
+  ODNI.Visible:=FALSE;
+  LB1.Caption:='';
+  Busca.Enabled:=true;
+  Busca.SetFocus;
+end;
+
+
+end.

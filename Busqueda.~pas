@@ -1,0 +1,669 @@
+unit Busqueda;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, ADODB, Grids, DBGrids, StdCtrls, ExtCtrls, LMDCustomButton,
+  LMDButton, Mask, DBCtrls,ClaseCodigoPostal,DBClient,
+  ComCtrls, StrUtils, ClaseSistemas, Buttons, JvExButtons, JvBitBtn,
+  JvExDBGrids, JvDBGrid,ClaseFunciones;
+
+type
+  TLA_BUSQUEDA = class(TForm)
+    DSBUSCANDO: TDataSource;
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    Label7: TLabel;
+    Edit1: TEdit;
+    GroupBox3: TGroupBox;
+    DB1: TDBEdit;
+    DB2: TDBEdit;
+    DB3: TDBEdit;
+    DB5: TDBEdit;
+    GroupBox4: TGroupBox;
+    R1: TRadioButton;
+    R2: TRadioButton;
+    COL: TComboBox;
+    DB4: TDBEdit;
+    DB6: TDBEdit;
+    DB7: TDBEdit;
+    DB8: TDBEdit;
+    DB9: TDBEdit;
+    DB10: TDBEdit;
+    DB11: TDBEdit;
+    DB12: TDBEdit;
+    DB13: TDBEdit;
+    DBGrid1: TJvDBGrid;
+    Button1: TLMDButton;
+    AGREGAR: TLMDButton;
+    Button2: TLMDButton;
+    R3: TRadioButton;
+    DB14: TDBEdit;
+    DBNavigator1: TDBNavigator;
+    DB15: TDBEdit;
+    procedure Coloca1(nro:byte);
+    procedure FormActivate(Sender: TObject);
+    procedure Edit1KeyPress(Sender: TObject; var Key: Char);
+    procedure R1Click(Sender: TObject);
+    procedure R2Click(Sender: TObject);
+    procedure COLKeyPress(Sender: TObject; var Key: Char);
+    procedure AGREGARClick(Sender: TObject);
+    procedure DSBUSCANDODataChange(Sender: TObject; Field: TField);
+    procedure DBGrid2CellClick(Column: TColumn);
+    procedure Button2Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure DBGrid1TitleClick(Column: TColumn);
+    procedure DBGrid1CellClick(Column: TColumn);
+    procedure R3Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    NroOpcion:byte;
+    la_os,Telef,eltelef,eltelefcelular:string;{ Public declarations }
+    valor,valor1,cate:string;
+    CodigoPostal:TCodigoPostal;
+    Funciones:TFuncionesVarias;
+    DataSet,DtCombo,DtComboTel,DtComboTelCel:TClientDataSet; //declaro el DAtaset de los Combobox
+    DSGral:TClientDataSet;//declaro el DAtaset de la grilla
+    IdCombos:array of array of string;
+ end;
+
+var
+  LA_BUSQUEDA: TLA_BUSQUEDA;
+
+implementation
+
+uses Unidad, Modulo,ClaseClientes,AM_Clientes,AM_InhuClientes;//, AM_Afili, AM_TpoGen;
+
+{$R *.dfm}
+procedure TLA_BUSQUEDA.Coloca1(nro:byte);
+var t,y:integer;
+    txtw:widestring;
+    nrodni,IdCliente,ValNull,nroaccion:variant;
+    razonsocial:string;
+    Cliente:TClientes;
+begin
+if nro=0 then begin
+  DtComboTel.Free;
+  DtComboTel:=TClientdataSet.Create(nil);
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  txtw:='select CONVERT(nvarchar(5), Caracteristica) + ''-'' +  CONVERT(nvarchar(25), NroTelefono)'
+  + ' from Fn_VistaClientesTelefonos ('+ telef +',0) where tipotelefono=1';
+  if not Funciones.Listar(txtw,DtComboTel) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+  eltelef:=DtComboTel.Fields[0].AsString;
+end;
+if nro=1 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  CodigoPostal:=TCodigoPostal.Create(nil);
+  CodigoPostal.ConnectionString:=modulo2.Conexion;
+  txtw:='SELECT  CODIGO, POSTAL FROM CodigoPostal';
+  if not  CodigoPostal.Listar(txtw,DtCombo) then
+     messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  CodigoPostal.Free;
+end;
+if nro=2 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Cliente:=TClientes.Create(nil);
+  Cliente.ConnectionString:=modulo2.Conexion;
+  txtw:='select nrodni,cuif,razonsocial from VParcelasTitulares where (nroaccion=' + valor1 + ')';
+  if not Cliente.Listar(txtw,DtCombo) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Cliente.Free;
+end;
+if nro=3 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  NroDni:=null;
+  razonsocial:='';
+  IdCliente:=null;
+  if not Funciones.Run_Fn_VistaClientes(IdCliente,'',Nrodni,NroDni,NroDni,'',DtCombo,'where (idcliente <> 11335) and (idcliente <> 0)',50) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+end;
+if nro=4 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  NroDni:=null;
+  ValNull:=null;
+  if not Funciones.Run_Fn_VistaParcelasVentasTitulares(NroDni,ValNull,'',true,false,'',ValNull,DtCombo,'',50) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+end;
+if nro=5 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  NroDni:=null;
+  ValNull:=null;
+  if not Funciones.Run_Fn_VistaParcelasServiciosTitulares(NroDni,ValNull,'',true,false,'',ValNull,DtCombo,'',50) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+end;
+if nro=6 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  NroDni:=null;
+  ValNull:=null;
+  if not Funciones.Run_Fn_VistaParcelasMantenimientoTitulares(NroDni,'','',ValNull,DtCombo,'',50) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+end;
+if nro=7 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  nroaccion:=strtoint(valor);
+  if not Funciones.Run_Fn_VistaParcelasResponsables(nroaccion,DtCombo,' where TipoAccionista=2 order by nivel',0) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',
+      mtError,[mbok],0);
+  Funciones.Free;
+end;
+if nro=8 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  NroDni:=null;
+  ValNull:=null;
+  if not Funciones.Run_Fn_VistaParcelasCuentas(NroDni,'',ValNull,DtCombo,'',50) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+end;
+if nro=9 then begin
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  DSBUSCANDO.DataSet:=DtCombo;
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  NroDni:=null;
+  razonsocial:='';
+  IdCliente:=null;
+  if not Funciones.Run_Fn_VistaClientes(IdCliente,'',Nrodni,NroDni,NroDni,'',DtCombo,' where (idcliente <> 11335) and (idcliente <> 0)',25) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+end;
+if nro=10 then begin
+  DtComboTelCel.Free;
+  DtComboTelCel:=TClientdataSet.Create(nil);
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  //txtw:='SELECT case when telefcelular is null then '''' else telefcelular end '
+  //+ ' FROM Fn_VistaLosTitularesMinoristas ('+ telef +')';
+  txtw:='select CONVERT(nvarchar(5), Caracteristica) + ''-'' +  CONVERT(nvarchar(25), NroTelefono)'
+  + ' from Fn_VistaClientesTelefonos ('+ telef +',0) where tipotelefono=3';
+  if not Funciones.Listar(txtw,DtComboTelCel) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  Funciones.Free;
+  eltelefcelular:=DtComboTelCel.Fields[0].AsString;
+end;
+end;
+
+procedure TLA_BUSQUEDA.FormActivate(Sender: TObject);
+var t:integer;
+begin
+  Coloca1(NroOpcion);
+  if DtCombo.RecordCount <> 0 then begin
+    COL.Clear;
+    for t:=0 to DtCombo.FieldCount-1 do begin
+      COL.Items.Insert(t,trim(DtCombo.Fields[t].FieldName));
+    end;
+    COL.ItemIndex:=0;
+  end;
+  Edit1.SetFocus;
+  if (nroopcion = 4) or (nroopcion = 5) or (nroopcion = 6) or (nroopcion = 7) then agregar.Enabled:=false;
+  if (NroOpcion = 9) then begin
+     r1.Checked :=false;
+     r3.Checked := true;
+  end;
+  if (nroOpcion = 3) then begin
+     r1.Checked :=true;
+     r3.Checked := false;
+  end;
+end;
+
+procedure TLA_BUSQUEDA.Edit1KeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+  Button1.SetFocus;
+end
+else begin
+  if r3.Checked  then begin
+    if ( StrScan('0123456789',Key) <> nil ) or ( Key = Char(VK_BACK) ) then
+     else Key := #0;
+  end;
+end;
+end;
+
+procedure TLA_BUSQUEDA.R1Click(Sender: TObject);
+begin
+label7.Caption:='Ingrese Ape. y Nombre';
+COL.Visible:=false;
+Edit1.SetFocus;
+end;
+
+procedure TLA_BUSQUEDA.R2Click(Sender: TObject);
+begin
+COL.Visible:=true;
+COL.SetFocus;
+end;
+
+procedure TLA_BUSQUEDA.COLKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then Edit1.SetFocus;
+end;
+
+procedure TLA_BUSQUEDA.AGREGARClick(Sender: TObject);
+var AM_Cli: TAM_Cli;
+var AM_InhumadoCli :TAM_InhumadoCli;
+begin
+ if NroOpcion = 3 then begin
+  AM_Cli:= TAM_Cli.create(self);
+  try
+    AM_Cli.TipoCliente:=1;
+    AM_Cli.ODNI.Text:=trim(edit1.Text);
+    AM_Cli.ShowModal;
+  finally
+    AM_Cli.destroy;
+  end;
+  button1.Click;
+ end;
+
+ if NroOpcion = 9 then begin
+  AM_InhumadoCli:= TAM_InhumadoCli.create(self);
+  try
+    AM_InhumadoCli.dni.Text:=trim(edit1.Text);
+    AM_InhumadoCli.ShowModal;
+  finally
+    AM_InhumadoCli.destroy;
+  end;
+  button1.Click;
+ end;
+end;
+
+procedure TLA_BUSQUEDA.DSBUSCANDODataChange(Sender: TObject;
+  Field: TField);
+var td:string;
+begin
+if (NroOpcion = 1)then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[0].DisplayName;
+  DB2.DataField:=DtCombo.FieldDefs.Items[1].DisplayName;
+end;
+if (NroOpcion = 2)  then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[0].DisplayName;
+  DB2.DataField:=DtCombo.FieldDefs.Items[1].DisplayName;
+  DB3.DataField:=DtCombo.FieldDefs.Items[2].DisplayName;
+  DB4.DataField:=DtCombo.FieldDefs.Items[3].DisplayName;
+  DB5.DataField:=DtCombo.FieldDefs.Items[4].DisplayName;
+  DB6.DataField:=DtCombo.FieldDefs.Items[5].DisplayName;
+  DB7.DataField:=DtCombo.FieldDefs.Items[6].DisplayName;
+  DB8.DataField:=DtCombo.FieldDefs.Items[7].DisplayName;
+  DB9.DataField:=DtCombo.FieldDefs.Items[8].DisplayName;
+  DB10.DataField:=DtCombo.FieldDefs.Items[9].DisplayName;
+  DB11.DataField:=DtCombo.FieldDefs.Items[10].DisplayName;
+  DB12.DataField:=DtCombo.FieldDefs.Items[11].DisplayName;
+end;
+if (NroOpcion = 3) or (NroOpcion = 9) then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[5].DisplayName;  //dni
+  DB2.DataField:=DtCombo.FieldDefs.Items[1].DisplayName;  //cuif
+  DB3.DataField:=DtCombo.FieldDefs.Items[4].DisplayName;  //tipodoc
+  DB4.DataField:=DtCombo.FieldDefs.Items[2].DisplayName;  //nombre
+  DB5.DataField:=DtCombo.FieldDefs.Items[15].DisplayName; //domicilio
+  DB6.DataField:=DtCombo.FieldDefs.Items[14].DisplayName; //barrio
+  DB7.DataField:=DtCombo.FieldDefs.Items[12].DisplayName; //provincia
+  DB14.DataField:=DtCombo.FieldDefs.Items[13].DisplayName; //localidad
+  DB8.DataField:=DtCombo.FieldDefs.Items[9].DisplayName;  //nacionalidad
+  DB9.DataField:=DtCombo.FieldDefs.Items[10].DisplayName; //estcivil
+  DB10.DataField:=DtCombo.FieldDefs.Items[11].DisplayName;//fecnac
+  DB11.DataField:=DtCombo.FieldDefs.Items[8].DisplayName; //
+  DB12.DataField:=DtCombo.FieldDefs.Items[0].DisplayName; //
+  DB13.DataField:=DtCombo.FieldDefs.Items[24].DisplayName;//profesion
+  DB15.DataField:=DtCombo.FieldDefs.Items[6].DisplayName;//sexo
+end;
+if (NroOpcion = 4) then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[0].DisplayName;
+  DB2.DataField:=DtCombo.FieldDefs.Items[1].DisplayName;
+  DB3.DataField:=DtCombo.FieldDefs.Items[2].DisplayName;
+  DB4.DataField:=DtCombo.FieldDefs.Items[5].DisplayName;
+  DB5.DataField:=DtCombo.FieldDefs.Items[15].DisplayName;
+end;
+if (NroOpcion = 5) then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[0].DisplayName;
+  DB2.DataField:=DtCombo.FieldDefs.Items[1].DisplayName;
+  DB3.DataField:=DtCombo.FieldDefs.Items[2].DisplayName;
+  DB4.DataField:=DtCombo.FieldDefs.Items[7].DisplayName;
+  DB5.DataField:=DtCombo.FieldDefs.Items[20].DisplayName;
+end;
+if (NroOpcion = 6) then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[1].DisplayName;
+  DB2.DataField:=DtCombo.FieldDefs.Items[2].DisplayName;
+  DB3.DataField:=DtCombo.FieldDefs.Items[9].DisplayName;
+  DB4.DataField:=DtCombo.FieldDefs.Items[3].DisplayName;
+end;
+if (NroOpcion = 7) then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[0].DisplayName;
+  DB2.DataField:=DtCombo.FieldDefs.Items[1].DisplayName;
+  DB3.DataField:=DtCombo.FieldDefs.Items[2].DisplayName;
+  DB4.DataField:=DtCombo.FieldDefs.Items[3].DisplayName;
+  DB5.DataField:=DtCombo.FieldDefs.Items[4].DisplayName;
+  DB6.DataField:=DtCombo.FieldDefs.Items[5].DisplayName;
+  DB7.DataField:=DtCombo.FieldDefs.Items[6].DisplayName;
+  DB8.DataField:=DtCombo.FieldDefs.Items[7].DisplayName;
+end;
+if (NroOpcion = 8) then begin
+  DB1.DataField:=DtCombo.FieldDefs.Items[6].DisplayName;
+  DB2.DataField:=DtCombo.FieldDefs.Items[0].DisplayName;
+  DB3.DataField:=DtCombo.FieldDefs.Items[2].DisplayName;
+  DB5.DataField:=DtCombo.FieldDefs.Items[3].DisplayName;
+end;
+end;
+
+procedure TLA_BUSQUEDA.DBGrid2CellClick(Column: TColumn);
+begin
+Button2.SetFocus;
+end;
+
+procedure TLA_BUSQUEDA.Button2Click(Sender: TObject);
+begin
+close;
+end;
+
+procedure TLA_BUSQUEDA.Button1Click(Sender: TObject);
+var txtw,txt:widestring;
+    Cliente:TClientes;
+    nrodni,IdCliente,ValNull,nroaccion:variant;
+    razonsocial:string;
+    gf:integer;
+begin
+DtCombo.Free;
+DtCombo:=TClientdataSet.Create(nil);
+DSBUSCANDO.DataSet:=DtCombo;
+if R1.Checked = true then begin
+  if NroOpcion = 1 then begin
+    CodigoPostal:=TCodigoPostal.Create(nil);
+    CodigoPostal.ConnectionString:=modulo2.Conexion;
+    txtw:='SELECT  CODIGO, POSTAL FROM CodigoPostal WHERE (POSTAL LIKE ' + chr(39)
+          + chr(37) + transforma(trim(Edit1.Text),chr(39),chr(33)) + chr(37) + chr(39)
+          + ') ORDER BY  POSTAL';
+    if not CodigoPostal.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    CodigoPostal.Free;
+  end;
+  if NroOpcion = 2 then begin
+    Cliente:=TClientes.Create(nil);
+    Cliente.ConnectionString:=modulo2.Conexion;
+    txtw:='select nrodni,cuif,razonsocial from VParcelasTitulares where (nroaccion='
+          + valor1 + ') and (razonsocial LIKE ' + chr(39) + chr(37)
+          + AnsiReplaceStr(trim(Edit1.Text),chr(39),chr(33)) + chr(37) + chr(39)
+          + ') ORDER BY  razonsocial';
+    if not Cliente.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    Cliente.Free;
+  end;
+  if (NroOpcion = 3) or (NroOpcion=9) then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    NroDni:=null;
+    razonsocial:=ansireplacestr(trim(Edit1.Text),chr(39),chr(33));
+    IdCliente:=null;
+    if not Funciones.Run_Fn_VistaClientes(IdCliente,RazonSocial,Nrodni,NroDni,NroDni,'',DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+    if DtCombo.RecordCount = 0 then begin
+     IF application.MessageBox('CLIENTE NO encontrado, !Desea darlo de Alta!?','Advertencia' ,mb_OKcancel+mb_IconHAnd) = IdOk
+     then begin
+       agregar.Click;
+     end
+     else begin
+       edit1.SetFocus;
+     end;
+    end
+    else begin
+     DBGrid1.SetFocus;
+    end;
+  end;
+  if NroOpcion = 4 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    if trim(Edit1.Text) = '' then NroDni:=null
+    else NroDni:=trim(Edit1.Text);
+    ValNull:=null;
+    if not Funciones.Run_Fn_VistaParcelasVentasTitulares(NroDni,ValNull,'',true,false,'',ValNull,DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion = 5 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    if trim(Edit1.Text) = '' then NroDni:=null
+    else NroDni:=trim(Edit1.Text);
+    ValNull:=null;
+    if not Funciones.Run_Fn_VistaParcelasServiciosTitulares(NroDni,ValNull,'',true,false,'',ValNull,DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion = 6 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    if trim(Edit1.Text) = '' then NroDni:=null
+    else NroDni:=trim(Edit1.Text);
+    ValNull:=null;
+    if not Funciones.Run_Fn_VistaParcelasMantenimientoTitulares(NroDni,'','',ValNull,DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion=7 then begin
+    DtCombo.Free;
+    DtCombo:=TClientdataSet.Create(nil);
+    DSBUSCANDO.DataSet:=DtCombo;
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    nroaccion:=strtoint(valor);
+    if not Funciones.Run_Fn_VistaParcelasResponsables(nroaccion,DtCombo,'',0) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',
+        mtError,[mbok],0);
+    Funciones.Free;
+  end;
+end;
+if R2.Checked = true then begin
+  txt:=trim(COL.Text) + ' LIKE ' + chr (39) + chr(37) + AnsiReplaceStr(trim(Edit1.Text),chr(39),chr(33)) + chr(37) + chr(39);
+  if NroOpcion = 1 then begin
+    CodigoPostal:=TCodigoPostal.Create(nil);
+    CodigoPostal.ConnectionString:=modulo2.Conexion;
+    txtw:='SELECT  CODIGO, POSTAL FROM CodigoPostal WHERE (' + txt  + ') ORDER BY POSTAL';
+    if not  CodigoPostal.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    CodigoPostal.Free;
+  end;
+  if NroOpcion = 2 then begin
+    Cliente:=TClientes.Create(nil);
+    Cliente.ConnectionString:=modulo2.Conexion;
+    txtw:='select nrodni,cuif,razonsocial from VParcelasTitulares where (nroaccion='
+          + valor1 + ') and  (' + txt  + ') ORDER BY razonsocial';
+    if not Cliente.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    Cliente.Free;
+  end;
+  if (NroOpcion = 3) or (NroOpcion=9) then begin
+    Cliente:=TClientes.Create(nil);
+    Cliente.ConnectionString:=modulo2.Conexion;
+    txtw:='select * from VClientes where (' + txt  + ') ORDER BY razonsocial';
+    if not Cliente.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    Cliente.Free;
+    if DtCombo.RecordCount = 0 then begin
+     IF application.MessageBox('CLIENTE NO encontrado, !Desea darlo de Alta!?','Advertencia' ,mb_OKcancel+mb_IconHAnd) = IdOk
+     then begin
+      agregar.Click;
+     end
+     else begin
+      edit1.SetFocus;
+     end;
+    end
+    else begin
+     DBGrid1.SetFocus;
+    end;
+  end;
+  if NroOpcion = 4 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    txtw:='select * from VParcelasVentasTitulares where (' + txt  + ') ORDER BY IdVenta';
+    if not Funciones.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion = 5 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    txtw:='select * from VParcelasServiciosTitulares where (' + txt  + ') ORDER BY IdServicio';
+    if not Funciones.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion = 6 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    txtw:='select * from VParcelasMantenimientoTitulares where (' + txt  + ') ORDER BY NroAccion';
+    if not Funciones.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion = 7 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    txtw:='select * from VParcelasResponsables where (' + txt  + ') ORDER BY NroAccion';
+    if not Funciones.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+end;
+if R3.Checked = true then begin
+  if NroOpcion = 1 then begin
+    CodigoPostal:=TCodigoPostal.Create(nil);
+    CodigoPostal.ConnectionString:=modulo2.Conexion;
+    txtw:='SELECT  CODIGO, POSTAL FROM CodigoPostal WHERE (POSTAL LIKE ' + chr(39)
+    + chr(37) + transforma(trim(Edit1.Text),chr(39),chr(33)) + chr(37) + chr(39) + ') ORDER BY  POSTAL';
+    if not CodigoPostal.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    CodigoPostal.Free;
+  end;
+  if NroOpcion = 2 then begin
+    Cliente:=TClientes.Create(nil);
+    Cliente.ConnectionString:=modulo2.Conexion;
+    txtw:='select nrodni,cuif,razonsocial from VParcelasTitulares where (nroaccion='
+    + valor1 + ') and (razonsocial LIKE ' + chr(39) + chr(37)
+    + AnsiReplaceStr(trim(Edit1.Text),chr(39),chr(33)) + chr(37) + chr(39) + ') ORDER BY  razonsocial';
+    if not Cliente.Listar(txtw,DtCombo) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    Cliente.Free;
+  end;
+  if (NroOpcion = 3) or (NroOpcion=9) then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    NroDni:=trim(Edit1.Text);
+    //razonsocial:=ansireplacestr(trim(Edit1.Text),chr(39),chr(33));
+    IdCliente:=null;
+    if not Funciones.Run_Fn_VistaClientes(IdCliente,'',Nrodni,IdCliente,IdCliente,'',DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+    if DtCombo.RecordCount = 0 then begin
+     IF application.MessageBox('CLIENTE NO encontrado, !Desea darlo de Alta!?','Advertencia' ,mb_OKcancel+mb_IconHAnd) = IdOk
+     then begin
+      agregar.Click;
+     end
+     else begin
+      edit1.SetFocus;
+     end;
+    end
+    else begin
+     DBGrid1.SetFocus;
+    end;
+  end;
+  if NroOpcion = 4 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    if trim(Edit1.Text) = '' then NroDni:=null
+    else NroDni:=trim(Edit1.Text);
+    ValNull:=null;
+    if not Funciones.Run_Fn_VistaParcelasVentasTitulares(NroDni,ValNull,'',true,false,'',ValNull,DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion = 5 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    if trim(Edit1.Text) = '' then NroDni:=null
+    else NroDni:=trim(Edit1.Text);
+    ValNull:=null;
+    if not Funciones.Run_Fn_VistaParcelasServiciosTitulares(NroDni,ValNull,'',true,false,'',ValNull,DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion = 6 then begin
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    if trim(Edit1.Text) = '' then NroDni:=null
+    else NroDni:=trim(Edit1.Text);
+    ValNull:=null;
+    if not Funciones.Run_Fn_VistaParcelasMantenimientoTitulares(NroDni,'','',ValNull,DtCombo,'',100) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador', mtError,[mbok],0);
+    Funciones.Free;
+  end;
+  if NroOpcion=7 then begin
+    DtCombo.Free;
+    DtCombo:=TClientdataSet.Create(nil);
+    DSBUSCANDO.DataSet:=DtCombo;
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    nroaccion:=strtoint(valor);
+    if not Funciones.Run_Fn_VistaParcelasResponsables(nroaccion,DtCombo,'',0) then
+      messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    Funciones.Free;
+  end;
+end;
+Button2.SetFocus;
+end;
+
+procedure TLA_BUSQUEDA.DBGrid1TitleClick(Column: TColumn);
+begin
+DtCombo.IndexFieldNames:=Column.FieldName;
+end;
+
+procedure TLA_BUSQUEDA.DBGrid1CellClick(Column: TColumn);
+begin
+ button2.SetFocus;
+ telef:=dtcombo.Fields[1].AsString;
+ coloca1(0);
+ coloca1(10);
+end;
+
+procedure TLA_BUSQUEDA.R3Click(Sender: TObject);
+begin
+label7.Caption:='Ingrese Nro Documento';
+COL.Visible:=false;
+Edit1.SetFocus;
+end;
+
+end.

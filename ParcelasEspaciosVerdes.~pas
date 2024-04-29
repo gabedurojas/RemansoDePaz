@@ -1,0 +1,356 @@
+unit ParcelasEspaciosVerdes;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs,DBClient, StdCtrls, DBCtrls, Grids, DBGrids, ComCtrls, StrUtils,
+  DB, Mask, ADODB, Buttons, ExtCtrls,ClaseParcelas, ToolWin,
+  JvDBGrid, JvExButtons, JvBitBtn,
+  WSDLIntf, Unidad, JvExGrids, JvStringGrid, JvExDBGrids,
+  ClaseTiposSectores;
+
+type THackStringGrid = class(TStringGrid);
+type
+  TPEspVerdes = class(TForm)
+    Barra1: TStatusBar;
+    DataSource1: TDataSource;
+    PC1: TPageControl;
+    TabSheet3: TTabSheet;
+    grupo1: TGroupBox;
+    Bevel2: TBevel;
+    Busca: TJvBitBtn;
+    DBGrid1: TJvDBGrid;
+    ToolBar1: TToolBar;
+    ToolButton4: TToolButton;
+    ToolButton2: TToolButton;
+    GUARDA: TJvBitBtn;
+    ToolButton3: TToolButton;
+    JvBitBtn3: TJvBitBtn;
+    Label2: TLabel;
+    GroupBox3: TGroupBox;
+    C6: TCheckBox;
+    Label14: TLabel;
+    ElSector: TComboBox;
+    Label29: TLabel;
+    LaAccion: TComboBox;
+    Shape2: TShape;
+    Label55: TLabel;
+    Shape3: TShape;
+    Label56: TLabel;
+    LB1: TLabel;
+    ODNI: TEdit;
+    Label6: TLabel;
+    FECNAC: TMaskEdit;
+    Label3: TLabel;
+    OBSERV: TEdit;
+    procedure Coloca1(nro:byte);
+    procedure FormActivate(Sender: TObject);
+    procedure BuscaClick(Sender: TObject);
+    procedure SALEClick(Sender: TObject);
+    procedure GUARDAClick(Sender: TObject);
+    procedure JvBitBtn3Click(Sender: TObject);
+    procedure DBGrid1CellClick(Column: TColumn);
+    procedure ElSectorExit(Sender: TObject);
+    procedure ElSectorKeyPress(Sender: TObject; var Key: Char);
+    procedure LaAccionExit(Sender: TObject);
+    procedure LaAccionKeyPress(Sender: TObject; var Key: Char);
+    procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure FormCreate(Sender: TObject);
+    procedure FECNACExit(Sender: TObject);
+    procedure FECNACKeyPress(Sender: TObject; var Key: Char);
+    procedure OBSERVExit(Sender: TObject);
+    procedure OBSERVKeyPress(Sender: TObject; var Key: Char);
+  private
+    gh:boolean;
+    control:boolean;{Controla que no hubiere errores en la carga de datos}
+    { Private declarations }
+  public
+    // aca instancio la clase si la clase esta definida en el uses de la ventana
+    //ParcelasCuentas:TParcelasCuentas;
+    Resultado,elcuif,ArchivoImg:string;
+    pos,TipoCliente:integer;
+
+    DataSet,DtCombo:TClientDataSet; //declaro el DAtaset de los Combobox
+    ACCION: TADODataSet;
+    IdCombos:array of array of string;
+    ParcelasUpdate:TParcelas;
+    Parcelas:TParcelas;
+    TiposAccio:Unidad.TablaXML;
+  end;
+
+var
+  PEspVerdes: TPEspVerdes;
+
+implementation
+
+uses Modulo,ClaseSistemas,ClaseFunciones;
+
+{$R *.dfm}
+
+procedure TPEspVerdes.FormCreate(Sender: TObject);
+begin
+gh:=false;
+end;
+
+procedure TPEspVerdes.FormActivate(Sender: TObject);
+begin
+if not gh then begin
+  gh:=true;
+  ACCION:=TADODataSet.Create(nil);
+  ACCION.ConnectionString:=modulo2.Conexion;
+  DataSource1.DataSet:=ACCION;
+  setlength(IdCombos,2);
+  fecnac.Text:=strcut(fec_system(),10);
+  PC1.ActivePage:=PC1.Pages[0];
+  Coloca1(0);
+  GUARDA.Enabled:=false;
+  elsector.SetFocus;
+end;
+end;
+
+procedure TPEspVerdes.Coloca1(nro:byte);
+var t,y:integer;
+    txt,sec:string;
+    txtw:widestring;
+    Funciones:TFuncionesVarias;
+    Sistema:TSistemas;
+    TiposSectores:TTiposSectores;
+    Param:TWideStrings;
+    NroDni,NroCuif,nroid:variant;
+begin
+if nro=0 then begin // el sector
+    ELSECTOR.Clear;
+    DtCombo.Free;
+    Dtcombo:=TClientDataSet.Create(nil);
+    TiposSectores:=TTiposSectores.Create(nil);
+    TiposSectores.ConnectionString:=modulo2.Conexion;
+    txtw:='SELECT Sector FROM TiposSectores';
+    if TiposSectores.Listar(txtw,DtCombo) then begin
+      SetLength(IdCombos[0],DtCombo.RecordCount);
+      for t:=1 to DtCombo.RecordCount  do begin
+        DtCombo.RecNo:=t;
+        ELSECTOR.Items.Insert(t-1,trim(DtCombo.Fields[0].AsString));
+        IdCombos[0,t-1]:=DtCombo.Fields[0].AsString;
+      end;
+    end
+    else messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    TiposSectores.Free;
+    ELSECTOR.ItemIndex:=0;
+end;
+if nro=1 then begin
+  PC1.ActivePage:=PC1.Pages[0];
+  ACCION.Close;
+  sec:=IdCombos[0,ELSECTOR.ItemIndex];
+  txtw:='select * from Fn_VistaParcelasParaEspVerdes('+ trim(odni.Text)+',null,'+ chr(39) + sec+ chr(39) +',0)';
+  accion.CommandText:=txtw;
+  accion.Open;
+end;
+if nro=2 then begin  // las acciones
+    LAACCION.Clear;
+    DtCombo.Free;
+    Dtcombo:=TClientDataSet.Create(nil);
+    Funciones:=TFuncionesVarias.Create(nil);
+    Funciones.ConnectionString:=modulo2.Conexion;
+    sec:=IdCombos[0,ELSECTOR.ItemIndex];
+    if Funciones.Run_Fn_VistaParcelasParaEspVerdes(null,null,sec,DtCombo,'ORDER BY PARCELA',0) then  begin
+      SetLength(IdCombos[1],Dtcombo.RecordCount);
+      for t:=1 to Dtcombo.RecordCount  do begin
+        Dtcombo.RecNo:=t;
+        LAACCION.Items.Insert(t-1,trim(Dtcombo.Fields[5].AsString));
+        IdCombos[1,t-1]:=Dtcombo.Fields[0].AsString;
+      end;
+    end
+    else messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+    funciones.Free;
+    LAACCION.ItemIndex:=0;
+end;
+if nro=3  then begin
+  DataSet.Free;
+  DataSet:=TClientdataSet.Create(nil);
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  sec:=IdCombos[0,ELSECTOR.ItemIndex];
+  if not Funciones.Run_Fn_VistaParcelas(null,sec,null,null,DataSet,' where (parcela = '+  trim(laaccion.Text)+')' ,0) then
+    messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0);
+  odni.Text:=DataSet.Fields[0].AsString;
+  Funciones.Free;
+end;
+end;
+
+procedure TPEspVerdes.BuscaClick(Sender: TObject);
+begin
+Coloca1(1);
+if (Datasource1.DataSet.RecordCount = 0) then begin
+  Barra1.Panels[0].Text:='Sin Datos en Grilla';
+  IF application.MessageBox('CUENTA NO encontrada, !Desea darlo de Alta!?','Advertencia'
+    ,mb_OKcancel+mb_IconHAnd) = IdOk
+   then begin
+     GUARDA.Enabled:=TRUE;
+     PC1.ActivePage:=PC1.Pages[0];
+     busca.Click;
+  end
+  else begin
+     PC1.ActivePage:=PC1.Pages[0];
+     pc1.Pages[1].Enabled:=false;
+     Barra1.Panels[0].Text:='La opcion ALTA fue Cancelada';
+     BUSCA.SetFocus;
+  end;
+end
+else begin
+Barra1.Panels[1].Text:='Registos encontrados: ' + inttostr(Datasource1.DataSet.RecordCount);
+end;
+end;
+
+
+procedure TPEspVerdes.SALEClick(Sender: TObject);
+begin
+Close;
+end;
+
+procedure TPEspVerdes.GUARDAClick(Sender: TObject);
+var gf,t:integer;
+var m:boolean;
+var    txtw:widestring;
+begin
+if C6.Checked = true then begin
+  gf:=messagedlgpos('Desea Realmente Enviar esta PARCELA N°: ' + trim(laaccion.Text) +'  ESPACIOS VERDES?...',mtWarning,[
+             mbok,mbCancel],0,screen.Width div 3,screen.Height div 3);
+  if gf = 1 then begin
+      Parcelas:=TParcelas.Create(nil);
+      Parcelas.ConnectionString:=modulo2.Conexion;
+      txtw:='UPDATE Parcelas SET EspacioVerde = 1 ,Observacion=' + chr(39) + trim(observ.Text) + chr(39)
+      + ' WHERE (NroAccion=' + trim(odni.Text) + ') and (Sector= ' + chr(39) + trim(elsector.Text) + chr(39)  + ')';
+      m:=Parcelas.ListarSinResp(txtw);
+      parcelas.Free;
+      if m then begin
+        messagedlg('Esta Parcela se envió a Espacios Verdes con Exito...', mtConfirmation,[mbok],0);
+        AuditAccesos('Mdulo 2','ACCION ' +TRIM(ODNI.Text) + ' PASO A ESP. VERDES');
+        accion.Close;
+        fecnac.Text:=strcut(fec_system(),10);
+        observ.Clear;
+        guarda.Enabled:=false;
+        odni.Text:='00000000';
+        laaccion.Clear;
+        elsector.ItemHeight:=0;
+        elsector.SetFocus;
+      end
+      else begin
+        messagedlg('Error al enviar  esta Parcela a Espacios Verdes . Consulte con un Administrador',mtError,[mbok],0);
+      end;
+  end
+  else begin
+    messagedlg('Ud. acaba de Cancelar esta Acción. No se produjeron ningún cambio en la Base de Datos',mtWarning,[mbok],0);
+  end;
+end;
+end;
+
+procedure TPEspVerdes.JvBitBtn3Click(Sender: TObject);
+begin
+close;
+end;
+
+procedure TPEspVerdes.DBGrid1CellClick(Column: TColumn);
+begin
+if not (Dataset.IsEmpty) then begin
+  if (trim(DBGrid1.Fields[8].Text) = 'True')  then begin
+    messagedlg('ATENCION!! Esta Parcela ya se encuentra afectada a Espacios Verdes!!',mterror,[mbok],0);
+    guarda.Enabled:=false;
+  end
+  else begin
+    C6.Checked:=true;
+    guarda.Enabled:=true;
+    fecnac.SetFocus;
+  end;
+end;
+end;
+
+procedure TPEspVerdes.ElSectorExit(Sender: TObject);
+begin
+if ElSector.ItemIndex < 0 then begin
+  messagedlg('ERROR!! No Existe el Sector Ingresado!!',mterror,[mbok],0);
+  ElSector.SetFocus;
+end;
+end;
+
+procedure TPEspVerdes.ElSectorKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+  coloca1(2);
+  laaccion.Enabled:=true;
+  laaccion.SetFocus;
+end;
+end;
+
+procedure TPEspVerdes.LaAccionExit(Sender: TObject);
+begin
+if LaAccion.ItemIndex < 0 then begin
+  messagedlg('ERROR!! No Existe el N° de Acción Ingresado!!',mterror,[mbok],0);
+  LaAccion.SetFocus;
+end;
+end;
+
+procedure TPEspVerdes.LaAccionKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+  coloca1(3);
+  busca.SetFocus;
+end;
+end;
+
+procedure TPEspVerdes.DBGrid1DrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+begin
+if (trim(DBGrid1.Fields[8].Text) = 'True')  then begin
+    DBGrid1.Canvas.Brush.Color:=clLime;
+    DBGrid1.Canvas.FillRect(Rect);
+    DBGrid1.Canvas.Font.Color:= clBlack;
+end;
+if (trim(DBGrid1.Fields[8].Text) = 'False') then begin
+   DBGrid1.Canvas.Brush.Color:=clwindow;
+   DBGrid1.Canvas.FillRect(Rect);
+   DBGrid1.Canvas.Font.Color:= clBlack;
+end;
+DBGrid1.DefaultDrawColumnCell(Rect,Datacol,Column,State);
+end;
+
+procedure TPEspVerdes.FECNACExit(Sender: TObject);
+var kl:Tdatetime;
+begin
+try
+  kl:=strtodate(trim(FECNAC.Text));
+except
+  messagedlg('La Fecha Ingresada No es Válida',mterror,[mbok],0);
+  FECNAC.SetFocus;
+end;
+end;
+
+procedure TPEspVerdes.FECNACKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+  observ.SetFocus;
+end;
+end;
+
+procedure TPEspVerdes.OBSERVExit(Sender: TObject);
+begin
+if trim(OBSERV.Text) = '' then begin
+  messagedlg('Error!! No hay una Observacion Ingresada.',mterror,[mbok],0);
+  OBSERV.SetFocus
+end;
+end;
+
+procedure TPEspVerdes.OBSERVKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = #13 then begin
+  Key := #0;
+  guarda.SetFocus;
+end;
+end;
+
+end.

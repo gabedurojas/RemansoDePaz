@@ -1,0 +1,453 @@
+unit ClaseParcelasConsolidadosDeudas;
+
+interface
+
+uses
+  SysUtils, Classes, Controls, ComCtrls, StrUtils, DB, DBClient, CapaDatos, 
+  Variants, WSDLIntf;
+
+type
+  TParcelasConsolidadosDeudas= Class(TObject)
+  private
+  { Private declarations }
+    FCapaDatos: TCapaDatos;
+    FConnectionString: widestring;
+    FIdentidad: string;
+    FCountFields: integer;
+    FIsEmpty: boolean;
+    FIdDeuda:variant;
+    FNroAccion:variant;
+    FCuentaCliente:variant;
+    FCodigo:variant;
+    FCantCuotas:variant;
+    FCapital:variant;
+    FInteres:variant;
+    FTotalDeuda:variant;
+    FObservaciones:string;
+    FUsu_A:variant;
+    FFecha_A:string;
+    FConfirmado:boolean;
+    FUsu_Confirma:variant;
+    FFechaConfirma:string;
+    FAnulado:boolean;
+    FFechaAnula:string;
+    FUsu_Anula:variant;
+    FMotivoAnula:string;
+    FEnMovimientos:boolean;
+    FBloqueoMonto:boolean;
+    procedure SetConnectionString(Value:widestring);
+    procedure SetIdentidad(Value:string);
+    procedure SetIsEmpty(Value:boolean);
+    procedure SetIdDeuda(Value:variant);
+    procedure SetNroAccion(Value:variant);
+    procedure SetCuentaCliente(Value:variant);
+    procedure SetCodigo(Value:variant);
+    procedure SetCantCuotas(Value:variant);
+    procedure SetCapital(Value:variant);
+    procedure SetInteres(Value:variant);
+    procedure SetTotalDeuda(Value:variant);
+    procedure SetObservaciones(Value:string);
+    procedure SetUsu_A(Value:variant);
+    procedure SetFecha_A(Value:string);
+    procedure SetConfirmado(Value:boolean);
+    procedure SetUsu_Confirma(Value:variant);
+    procedure SetFechaConfirma(Value:string);
+    procedure SetAnulado(Value:boolean);
+    procedure SetFechaAnula(Value:string);
+    procedure SetUsu_Anula(Value:variant);
+    procedure SetMotivoAnula(Value:string);
+    procedure SetEnMovimientos(Value:boolean);
+    procedure SetBloqueoMonto(Value:boolean);
+  protected
+    { Protected declarations }
+  public
+    constructor Create(AOwner:TComponent);
+    property ConnectionString:widestring read FConnectionString write SetConnectionString;
+    property Identidad:string read FIdentidad write SetIdentidad;
+    property CountFields:integer read FCountFields;
+    property IsEmpty:boolean read FIsEmpty write SetIsEmpty;
+
+    property C_IdDeuda_PK:variant read FIdDeuda write SetIdDeuda;
+    property C_NroAccion_IX1:variant read FNroAccion write SetNroAccion;
+    property C_CuentaCliente_IX2:variant read FCuentaCliente write SetCuentaCliente;
+    property C_Codigo_IX3:variant read FCodigo write SetCodigo;
+    property C_CantCuotas:variant read FCantCuotas write SetCantCuotas;
+    property C_Capital:variant read FCapital write SetCapital;
+    property C_Interes:variant read FInteres write SetInteres;
+    property C_TotalDeuda:variant read FTotalDeuda write SetTotalDeuda;
+    property C_Observaciones:string read FObservaciones write SetObservaciones;
+    property C_Usu_A:variant read FUsu_A write SetUsu_A;
+    property C_Fecha_A:string read FFecha_A write SetFecha_A;
+    property C_Confirmado:boolean read FConfirmado write SetConfirmado;
+    property C_Usu_Confirma:variant read FUsu_Confirma write SetUsu_Confirma;
+    property C_FechaConfirma_IX4:string read FFechaConfirma write SetFechaConfirma;
+    property C_Anulado:boolean read FAnulado write SetAnulado;
+    property C_FechaAnula_IX5:string read FFechaAnula write SetFechaAnula;
+    property C_Usu_Anula:variant read FUsu_Anula write SetUsu_Anula;
+    property C_MotivoAnula:string read FMotivoAnula write SetMotivoAnula;
+    property C_EnMovimientos:boolean read FEnMovimientos write SetEnMovimientos;
+    property C_BloqueoMonto:boolean read FBloqueoMonto write SetBloqueoMonto;
+
+  {Declaracion de Metodos}
+    Function BuscarPK(ValorBuscado:String):boolean;
+    Function ListarSP(var Parametros:TWideStrings; var DataSet:TClientDataSet; MaxRecord:integer):boolean;
+    Function Listar(Consulta:widestring; var DataSet:TClientDataSet):boolean;
+    Function ListarSinResp(Consulta:widestring):boolean;
+    Function Agrega():boolean;
+    Function Borrar(ValorBuscado:string):boolean;
+    Function Modificar():boolean;
+
+  Published
+    { Published declarations }
+  end;
+
+  var FCapaDatos:TCapaDatos;
+
+implementation
+
+constructor TParcelasConsolidadosDeudas.Create(AOwner:TComponent);
+begin
+  inherited Create();
+  FCountFields:=20;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetConnectionString(Value:widestring);
+begin
+  FConnectionString:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetIdentidad(Value:string);
+begin
+  FIdentidad:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetIsEmpty(Value:boolean);
+begin
+  FIsEmpty:=Value;
+end;
+
+
+procedure TParcelasConsolidadosDeudas.SetIdDeuda(Value:variant);
+begin
+  FIdDeuda:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetNroAccion(Value:variant);
+begin
+  FNroAccion:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetCuentaCliente(Value:variant);
+begin
+  FCuentaCliente:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetCodigo(Value:variant);
+begin
+  FCodigo:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetCantCuotas(Value:variant);
+begin
+  FCantCuotas:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetCapital(Value:variant);
+begin
+  FCapital:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetInteres(Value:variant);
+begin
+  FInteres:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetTotalDeuda(Value:variant);
+begin
+  FTotalDeuda:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetObservaciones(Value:string);
+begin
+  FObservaciones:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetUsu_A(Value:variant);
+begin
+  FUsu_A:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetFecha_A(Value:string);
+begin
+  FFecha_A:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetConfirmado(Value:boolean);
+begin
+  FConfirmado:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetUsu_Confirma(Value:variant);
+begin
+  FUsu_Confirma:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetFechaConfirma(Value:string);
+begin
+  FFechaConfirma:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetAnulado(Value:boolean);
+begin
+  FAnulado:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetFechaAnula(Value:string);
+begin
+  FFechaAnula:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetUsu_Anula(Value:variant);
+begin
+  FUsu_Anula:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetMotivoAnula(Value:string);
+begin
+  FMotivoAnula:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetEnMovimientos(Value:boolean);
+begin
+  FEnMovimientos:=Value;
+end;
+
+procedure TParcelasConsolidadosDeudas.SetBloqueoMonto(Value:boolean);
+begin
+  FBloqueoMonto:=Value;
+end;
+
+Function TParcelasConsolidadosDeudas.BuscarPK(ValorBuscado:String):boolean;
+var DataSet:TClientDataSet;
+    Parametros:TWideStrings;
+begin
+//Instancio el DataSet
+DataSet:=TClientDataSet.Create(nil);
+
+//Instancio el Contenedor de Parametros
+Parametros:=TWideStrings.Create;
+
+//Instancio la Capa de Datos
+FCapaDatos:=TCapaDatos.Create(nil);
+FCapaDatos.ConnectionString:=FConnectionString;
+
+//Cargo los Parmetros
+Parametros.Add(ValorBuscado);
+
+//Realizo la Consulta
+Result:=FCapaDatos.BuscarSP('SPC_ParcelasConsolidadosDeudasConsultar',Parametros,DataSet,1);
+if Result then begin
+  //Realizo la Asignación a las Propiedades de la Clase
+  IsEmpty:=DataSet.IsEmpty;
+  C_IdDeuda_PK:=DataSet.FieldByName('IdDeuda').AsVariant;
+  C_NroAccion_IX1:=DataSet.FieldByName('NroAccion').AsVariant;
+  C_CuentaCliente_IX2:=DataSet.FieldByName('CuentaCliente').AsVariant;
+  C_Codigo_IX3:=DataSet.FieldByName('Codigo').AsVariant;
+  C_CantCuotas:=DataSet.FieldByName('CantCuotas').AsVariant;
+  C_Capital:=DataSet.FieldByName('Capital').AsVariant;
+  C_Interes:=DataSet.FieldByName('Interes').AsVariant;
+  C_TotalDeuda:=DataSet.FieldByName('TotalDeuda').AsVariant;
+  C_Observaciones:=DataSet.FieldByName('Observaciones').AsString;
+  C_Usu_A:=DataSet.FieldByName('Usu_A').AsVariant;
+  C_Fecha_A:=DataSet.FieldByName('Fecha_A').AsString;
+  C_Confirmado:=DataSet.FieldByName('Confirmado').AsBoolean;
+  C_Usu_Confirma:=DataSet.FieldByName('Usu_Confirma').AsVariant;
+  C_FechaConfirma_IX4:=DataSet.FieldByName('FechaConfirma').AsString;
+  C_Anulado:=DataSet.FieldByName('Anulado').AsBoolean;
+  C_FechaAnula_IX5:=DataSet.FieldByName('FechaAnula').AsString;
+  C_Usu_Anula:=DataSet.FieldByName('Usu_Anula').AsVariant;
+  C_MotivoAnula:=DataSet.FieldByName('MotivoAnula').AsString;
+  C_EnMovimientos:=DataSet.FieldByName('EnMovimientos').AsBoolean;
+  C_BloqueoMonto:=DataSet.FieldByName('BloqueoMonto').AsBoolean;
+end;
+
+//Libero Memoria
+FCapaDatos.Free;
+Parametros.Free;
+DataSet.Free;
+end;
+
+Function TParcelasConsolidadosDeudas.ListarSP(var Parametros:TWideStrings; var DataSet:TClientDataSet; 
+MaxRecord:integer):boolean;
+begin
+//Instancio la Capa de Datos
+FCapaDatos:=TCapaDatos.Create(nil);
+FCapaDatos.ConnectionString:=FConnectionString;
+
+//Realizo la Consulta
+Result:=FCapaDatos.BuscarSP('SPC_ParcelasConsolidadosDeudasConsultar',Parametros,DataSet,MaxRecord);
+
+//Libero Memoria
+FCapaDatos.Free;
+end;
+
+Function TParcelasConsolidadosDeudas.Listar(Consulta:widestring; var DataSet:TClientDataSet):boolean;
+begin
+//Instancio la Capa de Datos
+FCapaDatos:=TCapaDatos.Create(nil);
+FCapaDatos.ConnectionString:=FConnectionString;
+
+//Realizo la Consulta
+Result:=FCapaDatos.QueryLibre(Consulta,DataSet);
+
+//Libero Memoria
+FCapaDatos.Free;
+end;
+
+Function TParcelasConsolidadosDeudas.ListarSinResp(Consulta:widestring):boolean;
+begin
+//Instancio la Capa de Datos
+FCapaDatos:=TCapaDatos.Create(nil);
+FCapaDatos.ConnectionString:=FConnectionString;
+
+//Realizo la Consulta
+Result:=FCapaDatos.QueryLibreSinResp(Consulta);
+
+//Libero Memoria
+FCapaDatos.Free;
+end;
+
+Function TParcelasConsolidadosDeudas.Agrega():boolean;
+var DataSet:TClientDataSet;
+    Parametros:TWideStrings;
+begin
+//Instancio el DataSet
+DataSet:=TClientDataSet.Create(nil);
+
+//Instancio el Contenedor de Parametros
+Parametros:=TWideStrings.Create;
+
+//Instancio la Capa de Datos
+FCapaDatos:=TCapaDatos.Create(nil);
+FCapaDatos.ConnectionString:=FConnectionString;
+
+//Cargo los Parmetros
+if (C_NroAccion_IX1 = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_NroAccion_IX1));
+if (C_CuentaCliente_IX2 = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_CuentaCliente_IX2));
+if (C_Codigo_IX3 = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Codigo_IX3));
+if (C_CantCuotas = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_CantCuotas));
+if (C_Capital = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Capital));
+Parametros.Add(C_Interes);
+if (C_TotalDeuda = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_TotalDeuda));
+Parametros.Add(C_Observaciones);
+if (C_Usu_A = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Usu_A));
+if C_Confirmado then Parametros.Add('1')
+else Parametros.Add('0');
+if (C_Usu_Confirma = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Usu_Confirma));
+Parametros.Add(C_FechaConfirma_IX4);
+if C_Anulado then Parametros.Add('1')
+else Parametros.Add('0');
+Parametros.Add(C_FechaAnula_IX5);
+if (C_Usu_Anula = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Usu_Anula));
+Parametros.Add(C_MotivoAnula);
+if C_EnMovimientos then Parametros.Add('1')
+else Parametros.Add('0');
+if C_BloqueoMonto then Parametros.Add('1')
+else Parametros.Add('0');
+
+//Realizo la Consulta
+Result:=FCapaDatos.BuscarSP('SPC_ParcelasConsolidadosDeudasInsertar',Parametros,DataSet,1);
+
+if Result then begin
+  if not(DataSet.IsEmpty) then Identidad:=DataSet.Fields[0].AsString
+end;
+
+//Libero Memoria
+FCapaDatos.Free;
+DataSet.Free;
+Parametros.Free;
+end;
+
+Function TParcelasConsolidadosDeudas.Borrar(ValorBuscado:string):boolean;
+var Parametros:TWideStrings;
+begin
+
+//Instancio el Contenedor de Parametros
+Parametros:=TWideStrings.Create;
+
+//Instancio la Capa de Datos
+FCapaDatos:=TCapaDatos.Create(nil);
+FCapaDatos.ConnectionString:=FConnectionString;
+
+//Cargo los Parmetros
+Parametros.Add(ValorBuscado);
+
+//Realizo la Consulta
+Result:=FCapaDatos.EjecutarSinResp('SPC_ParcelasConsolidadosDeudasEliminar',Parametros);
+
+//Libero Memoria
+FCapaDatos.Free;
+Parametros.Free;
+end;
+
+Function TParcelasConsolidadosDeudas.Modificar():boolean;
+var Parametros:TWideStrings;
+begin
+//Instancio el Contenedor de Parametros
+Parametros:=TWideStrings.Create;
+
+//Instancio la Capa de Datos
+FCapaDatos:=TCapaDatos.Create(nil);
+FCapaDatos.ConnectionString:=FConnectionString;
+
+//Cargo los Parmetros
+Parametros.Add(IntToStr(C_IdDeuda_PK));
+if (C_NroAccion_IX1 = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_NroAccion_IX1));
+if (C_CuentaCliente_IX2 = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_CuentaCliente_IX2));
+if (C_Codigo_IX3 = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Codigo_IX3));
+if (C_CantCuotas = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_CantCuotas));
+if (C_Capital = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Capital));
+Parametros.Add(C_Interes);
+if (C_TotalDeuda = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_TotalDeuda));
+Parametros.Add(C_Observaciones);
+if C_Confirmado then Parametros.Add('1')
+else Parametros.Add('0');
+if (C_Usu_Confirma = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Usu_Confirma));
+Parametros.Add(C_FechaConfirma_IX4);
+if C_Anulado then Parametros.Add('1')
+else Parametros.Add('0');
+Parametros.Add(C_FechaAnula_IX5);
+if (C_Usu_Anula = NULL) then Parametros.Add('')
+else Parametros.Add(VarToStr(C_Usu_Anula));
+Parametros.Add(C_MotivoAnula);
+if C_EnMovimientos then Parametros.Add('1')
+else Parametros.Add('0');
+if C_BloqueoMonto then Parametros.Add('1')
+else Parametros.Add('0');
+
+
+//Realizo la Consulta
+Result:=FCapaDatos.EjecutarSinResp('SPC_ParcelasConsolidadosDeudasModificar',Parametros);
+
+//Libero Memoria
+FCapaDatos.Free;
+Parametros.Free;
+end;
+
+end.

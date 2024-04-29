@@ -1,0 +1,582 @@
+unit Est_MoviCaja;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,Unidad,
+  Dialogs, ComCtrls, ExtCtrls, StdCtrls, Buttons, Mask, DB, ADODB, Grids,DBClient,
+  DBGrids, RpDefine, RpBase, RpSystem, LMDCustomButton, LMDButton, ToolWin,ClaseFunciones,ClaseSistemas,
+  JvExDBGrids, JvDBGrid;
+
+type
+  TEstad_movCaja = class(TForm)
+    Barra1: TStatusBar;
+    GroupBox1: TGroupBox;
+    R1: TRadioButton;
+    R4: TRadioButton;
+    Bevel1: TBevel;
+    Buscar: TButton;
+    Label6: TLabel;
+    CODIGO: TMaskEdit;
+    GroupBox2: TGroupBox;
+    GroupBox3: TGroupBox;
+    FECEMI: TMaskEdit;
+    Label1: TLabel;
+    FECVEN: TMaskEdit;
+    Label3: TLabel;
+    DataSource1: TDataSource;
+    DataSource2: TDataSource;
+    DBGrid1: TDBGrid;
+    DBGrid2: TDBGrid;
+    Label17: TLabel;
+    R3: TRadioButton;
+    Rv: TRvSystem;
+    IMPRIME: TBitBtn;
+    Button1: TButton;
+    R5: TRichEdit;
+    Splitter1: TSplitter;
+    SALE: TLMDButton;
+    R2: TRadioButton;
+    COBRADOR: TComboBox;
+    Image1: TImage;
+    cabeza: TStringGrid;
+    cuerpo: TStringGrid;
+    procedure R1Click(Sender: TObject);
+    procedure R2Click(Sender: TObject);
+    procedure R4Click(Sender: TObject);
+    procedure CODIGOExit(Sender: TObject);
+    procedure CODIGOKeyPress(Sender: TObject; var Key: Char);
+    procedure FECEMIKeyPress(Sender: TObject; var Key: Char);
+    procedure FECVENKeyPress(Sender: TObject; var Key: Char);
+    procedure FECEMIExit(Sender: TObject);
+    procedure FECVENExit(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure BuscarClick(Sender: TObject);
+    procedure R3Click(Sender: TObject);
+    procedure IMPRIMEClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure DBGrid1TitleClick(Column: TColumn);
+    procedure DBGrid2TitleClick(Column: TColumn);
+    procedure SALEClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure Coloca1(nro:byte);
+    procedure COBRADORKeyPress(Sender: TObject; var Key: Char);
+    procedure COBRADORExit(Sender: TObject);
+    procedure RvPrint(Sender: TObject);
+  private
+    gh:boolean;
+    Funciones:TFuncionesVarias;
+    Sistemas:TSistemas;
+    IdCombos:array of array of string;
+    DtCombo:TClientDataSet;
+    CANTIDADES,DETALLE,DataSet1,DataSet2,DataSet3:TADODataSet;
+    Com1:TADOCommand;
+    //FechaActual:string;{
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Estad_movCaja: TEstad_movCaja;
+
+implementation
+
+uses Modulo,SplashForm;
+
+{$R *.dfm}
+
+procedure TEstad_movCaja.FormCreate(Sender: TObject);
+begin
+gh:=false;
+DataSet1:=TADODataSet.Create(nil);
+DataSet1.ConnectionString:=modulo2.Conexion;
+DataSet2:=TADODataSet.Create(nil);
+DataSet2.ConnectionString:=modulo2.Conexion;
+end;
+
+procedure TEstad_movCaja.FormActivate(Sender: TObject);
+begin
+if not(gh) then begin
+  gh:=true;
+  setlength(IdCombos,1);
+  CANTIDADES:=TADODataSet.Create(nil);
+  CANTIDADES.ConnectionString:=modulo2.Conexion;
+  DataSource1.DataSet:=CANTIDADES;
+  DETALLE:=TADODataSet.Create(nil);
+  DETALLE.ConnectionString:=modulo2.Conexion;
+  Datasource2.DataSet:=DETALLE;
+  FECVEN.Text:=strcut(Fec_System(),10);
+  FECEMI.Text:=FECVEN.Text;
+  r2.Checked;
+  FECEMI.SetFocus;
+  Coloca1(1);
+end;
+end;
+
+
+procedure TEstad_movCaja.Coloca1(nro:byte);
+var txtw:widestring;
+    t:integer;
+begin
+if nro=1 then begin //Combo Cobradores
+  COBRADOR.Clear;
+  DtCombo.Free;
+  DtCombo:=TClientdataSet.Create(nil);
+  Funciones:=TFuncionesVarias.Create(nil);
+  Funciones.ConnectionString:=modulo2.Conexion;
+  txtw:='SELECT distinct Nombre,cuif FROM VLosCobradores ORDER BY Nombre';
+  if not Funciones.Listar(txtw,DtCombo) then
+     messagedlg('ERROR al realizar Transac-SQL. Consulte con Administrador',mtError,[mbok],0)
+  else begin
+    SetLength(IdCombos[0],DtCombo.RecordCount);
+    for t:=1 to DtCombo.RecordCount  do begin
+      DtCombo.RecNo:=t;
+      COBRADOR.Items.Insert(t-1,trim(DtCombo.Fields[0].AsString));
+      IdCombos[0,t-1]:=DtCombo.Fields[1].AsString;
+    end;
+  end;
+  Funciones.Free;
+  COBRADOR.ItemIndex:=0;
+end;
+end;
+
+
+procedure TEstad_movCaja.R1Click(Sender: TObject);
+begin
+CODigo.Enabled:=false;
+cobrador.Enabled:=true;
+cobrador.SetFocus;
+end;
+
+procedure TEstad_movCaja.R2Click(Sender: TObject);
+begin
+cobrador.Enabled:=false;
+CODigo.Enabled:=false;
+fecemi.SetFocus;
+end;
+
+procedure TEstad_movCaja.R4Click(Sender: TObject);
+begin
+cobrador.Enabled:=true;
+codigo.Enabled:=true;
+cobrador.SetFocus;
+end;
+
+procedure TEstad_movCaja.CODIGOExit(Sender: TObject);
+begin
+  dataset2.CommandText:='SELECT NroPlanilla FROM PlanillaCobranzas WHERE (' +
+    'NroPlanilla=' + trim(CODIGO.Text) + ');';
+  dataset2.Open;
+  if dataset2.RecordCount <> 0 then begin
+    Barra1.SimpleText:='Nro De Planilla : ' + dataset2.Fields[0].AsString;
+  end
+  else begin
+    messagedlg('Debe Ingresar un Nro. de Planilla CORRECTA!!!',mtError,[mbok],0);
+    CODIGO.SetFocus;
+  end;
+  dataset2.Close;
+end;
+
+procedure TEstad_movCaja.CODIGOKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = chr(13) then buscar.SetFocus;
+end;
+
+procedure TEstad_movCaja.FECEMIKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = chr(13) then FECVEN.SetFocus;
+end;
+
+procedure TEstad_movCaja.FECVENKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = chr(13) then Buscar.SetFocus;
+end;
+
+procedure TEstad_movCaja.FECEMIExit(Sender: TObject);
+var fec:Tdatetime;
+begin
+try
+ fec:=strtodate(trim(FECEMI.Text));
+except
+  messagedlg('La fecha es Erronea!!',mterror,[mbok],0);
+  FECEMI.SetFocus;
+end;  
+end;
+
+procedure TEstad_movCaja.FECVENExit(Sender: TObject);
+var fec:Tdatetime;
+begin
+try
+ fec:=strtodate(trim(FECVEN.Text));
+except
+  messagedlg('La fecha es Erronea!!',mterror,[mbok],0);
+  FECVEN.SetFocus;
+end;
+end;
+
+procedure TEstad_movCaja.BuscarClick(Sender: TObject);
+var t,y:integer;
+begin
+CANTIDADES.Close;
+DETALLE.Close;
+    if R1.Checked then begin      // cobrador
+      CANTIDADES.CommandText:='SELECT  ''--> '' + Detalle AS MOVIMIENTO, COUNT(DETALLE) AS CANTIDAD,SUM(ImporteTotal) AS IMPORTATOTAL, '
+        + ' SUM(ImporteComision) AS TOTALCOMSION, SUM(totalNeto) AS TOTALNETO  '
+        + ' FROM  FN_LibroCaja (2,null,'+ chr(39) + trim(cobrador.Text) + chr(39) +',' + chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') GROUP BY Detalle  UNION '
+        + 'SELECT ''TOTAL'' AS MOVIMIENTO, '''' AS CANTIDAD,SUM(IMPORTETOTAL),SUM(ImporteComiSION),SUM(totalNeto) '
+        + ' FROM FN_LibroCaja (2,null,'+ chr(39) + trim(cobrador.Text) + chr(39) + ','+ chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ');';
+      CANTIDADES.Open;
+        dbgrid1.Columns[0].Width:=250;
+        dbgrid1.Columns[1].Width:=100;
+        dbgrid1.Columns[2].Width:=100;
+        dbgrid1.Columns[3].Width:=100;
+        dbgrid1.Columns[4].Width:=100;
+    end;
+    if R3.Checked then begin  // planilla
+      CANTIDADES.CommandText:='SELECT  ''--> '' + Detalle AS MOVIMIENTO, COUNT(DETALLE) AS CANTIDAD,SUM(ImporteTotal) AS IMPORTATOTAL, '
+        + ' SUM(ImporteComision) AS TOTALCOMSION, SUM(totalNeto) AS TOTALNETO  '
+        + ' FROM  FN_LibroCaja (1,'+ codigo.Text +',null,' + chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') GROUP BY Detalle  UNION '
+        + 'SELECT ''TOTAL'' AS MOVIMIENTO, '''' AS CANTIDAD,SUM(IMPORTETOTAL),SUM(ImporteComiSION),SUM(totalNeto) '
+        + ' FROM FN_LibroCaja (1,'+ codigo.Text +',null,'+ chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ');';
+      CANTIDADES.Open;
+        dbgrid1.Columns[0].Width:=250;
+        dbgrid1.Columns[1].Width:=100;
+        dbgrid1.Columns[2].Width:=100;
+        dbgrid1.Columns[3].Width:=100;
+        dbgrid1.Columns[4].Width:=100;
+    end;
+    if R2.Checked then begin  //fechas
+      CANTIDADES.CommandText:='SELECT  ''--> '' + Detalle AS MOVIMIENTO, COUNT(DETALLE) AS CANTIDAD,SUM(ImporteTotal) AS IMPORTATOTAL, '
+        + ' SUM(ImporteComision) AS TOTALCOMSION, SUM(totalNeto) AS TOTALNETO  '
+        + ' FROM  FN_LibroCaja (3,null,null,' + chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') GROUP BY Detalle  UNION '
+        + 'SELECT ''TOTAL'' AS MOVIMIENTO, '''' AS CANTIDAD,SUM(IMPORTETOTAL),SUM(ImporteComiSION),SUM(totalNeto) '
+        + ' FROM FN_LibroCaja (3,null,null,'+ chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ');';
+      CANTIDADES.Open;
+        dbgrid1.Columns[0].Width:=250;
+        dbgrid1.Columns[1].Width:=100;
+        dbgrid1.Columns[2].Width:=100;
+        dbgrid1.Columns[3].Width:=100;
+        dbgrid1.Columns[4].Width:=100;
+    end;
+    if R4.Checked then begin   //todos
+      CANTIDADES.CommandText:='SELECT  ''--> '' + Detalle AS MOVIMIENTO, COUNT(DETALLE) AS CANTIDAD,SUM(ImporteTotal) AS IMPORTATOTAL, '
+        + ' SUM(ImporteComision) AS TOTALCOMSION, SUM(totalNeto) AS TOTALNETO  '
+        + ' FROM  FN_LibroCaja (4,'+ codigo.Text +','+ chr(39) + trim(cobrador.Text) + chr(39) + ',' + chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') GROUP BY Detalle  UNION '
+        + 'SELECT ''TOTAL'' AS MOVIMIENTO, '''' AS CANTIDAD,SUM(IMPORTETOTAL),SUM(ImporteComiSION),SUM(totalNeto) '
+        + ' FROM FN_LibroCaja (4,'+ codigo.Text +','+ chr(39) + trim(cobrador.Text) + chr(39)+ ',' + chr(39) + trim(FECEMI.Text) +
+        chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ');';
+      CANTIDADES.Open;
+        dbgrid1.Columns[0].Width:=250;
+        dbgrid1.Columns[1].Width:=100;
+        dbgrid1.Columns[2].Width:=100;
+        dbgrid1.Columns[3].Width:=100;
+        dbgrid1.Columns[4].Width:=100;
+    end;
+    for t:=0 to cabeza.ColCount-1 do
+    for y:=1 to cabeza.RowCount-1 do cabeza.Cells[t,y]:='';
+     for t:=1 to Datasource1.DataSet.RecordCount do begin
+      Datasource1.DataSet.RecNo:=t;
+      cabeza.RowCount:=t+1;
+      cabeza.Cells[0,t]:=trim(Datasource1.DataSet.Fields[0].AsString);
+      cabeza.Cells[1,t]:=trim(Datasource1.DataSet.Fields[1].AsString);
+      cabeza.Cells[2,t]:=trim(Datasource1.DataSet.Fields[2].AsString);
+      cabeza.Cells[3,t]:=trim(Datasource1.DataSet.Fields[3].AsString);
+      cabeza.Cells[4,t]:=trim(Datasource1.DataSet.Fields[4].AsString);
+     end;
+
+    if R1.Checked then begin   // cobrador
+      DETALLE.CommandText:='SELECT  case when detalle=''PLAN DE PREVISION (PSP)'' then ''PSP'' else detalle end  as TipoTramites,RazonSocial as Cobrador,NroGestor,'
+      + 'case when TipoPlanilla=''PLANILLA DE RENDICION DE COBRANZAS'' then ''COBRANZAS'' else ''PARCELAS'' end as TipoPlanilla,Comision,ImporteTotal as Entrada,'
+      + 'ImporteComision as Salida, totalNeto as Saldo,NroPlanilla,FechaPlanilla from FN_LibroCaja (2,null,'+ chr(39) + trim(cobrador.Text)+ chr(39) + ',' + chr(39)
+      + trim(FECEMI.Text) + chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') ;';
+      DETALLE.Open;
+    end;
+    if R3.Checked then begin  // planilla
+      DETALLE.CommandText:='SELECT case when detalle=''PLAN DE PREVISION (PSP)'' then ''PSP'' else detalle end  as TipoTramites,RazonSocial as Cobrador,NroGestor,'
+      + 'case when TipoPlanilla=''PLANILLA DE RENDICION DE COBRANZAS'' then ''COBRANZAS'' else ''PARCELAS'' end as TipoPlanilla,Comision,ImporteTotal as Entrada,'
+      + 'ImporteComision as Salida, totalNeto as Saldo,NroPlanilla,FechaPlanilla from FN_LibroCaja (1,'+ codigo.Text +',null,' + chr(39)
+      + trim(FECEMI.Text) + chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') ;';
+      DETALLE.Open;
+    end;
+    if R2.Checked then begin     //fechas
+      DETALLE.CommandText:='SELECT case when detalle=''PLAN DE PREVISION (PSP)'' then ''PSP'' else detalle end  as TipoTramites,RazonSocial as Cobrador,NroGestor,'
+      + 'case when TipoPlanilla=''PLANILLA DE RENDICION DE COBRANZAS'' then ''COBRANZAS'' else ''PARCELAS'' end as TipoPlanilla,Comision,ImporteTotal as Entrada,'
+      + 'ImporteComision as Salida, totalNeto as Saldo,NroPlanilla,FechaPlanilla from FN_LibroCaja (3,null,null,' + chr(39)
+      + trim(FECEMI.Text) + chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') ;';
+      DETALLE.Open;
+    end;
+    if R4.Checked then begin    //todos
+      DETALLE.CommandText:='SELECT case when detalle=''PLAN DE PREVISION (PSP)'' then ''PSP'' else detalle end  as TipoTramites,RazonSocial as Cobrador,NroGestor,'
+      + 'case when TipoPlanilla=''PLANILLA DE RENDICION DE COBRANZAS'' then ''COBRANZAS'' else ''PARCELAS'' end as TipoPlanilla,Comision,ImporteTotal as Entrada,'
+      + 'ImporteComision as Salida, totalNeto as Saldo,NroPlanilla,FechaPlanilla from FN_LibroCaja (4,'+ codigo.Text +','+ chr(39) + trim(cobrador.Text) + chr(39)+ ',' + chr(39)
+      + trim(FECEMI.Text) + chr(39) + ',' + chr(39) + trim(FECVEN.Text) + chr(39) + ') ;';
+      DETALLE.Open;
+    end;
+
+    for t:=0 to cuerpo.ColCount-1 do
+    for y:=1 to cuerpo.RowCount-1 do cuerpo.Cells[t,y]:='';
+     for t:=1 to Datasource2.DataSet.RecordCount do begin
+      Datasource2.DataSet.RecNo:=t;
+      cuerpo.RowCount:=t+1;
+      cuerpo.Cells[0,t]:=trim(Datasource2.DataSet.Fields[0].AsString);
+      cuerpo.Cells[1,t]:=trim(Datasource2.DataSet.Fields[1].AsString);
+      cuerpo.Cells[2,t]:=trim(Datasource2.DataSet.Fields[2].AsString);
+      cuerpo.Cells[3,t]:=trim(Datasource2.DataSet.Fields[3].AsString);
+      cuerpo.Cells[4,t]:=trim(Datasource2.DataSet.Fields[4].AsString);
+      cuerpo.Cells[5,t]:=trim(Datasource2.DataSet.Fields[5].AsString);
+      cuerpo.Cells[6,t]:=trim(Datasource2.DataSet.Fields[6].AsString);
+      cuerpo.Cells[7,t]:=trim(Datasource2.DataSet.Fields[7].AsString);
+      cuerpo.Cells[8,t]:=trim(Datasource2.DataSet.Fields[8].AsString);
+      cuerpo.Cells[9,t]:=trim(Datasource2.DataSet.Fields[9].AsString);
+     end;
+
+if DETALLE.RecordCount <> 0 then IMPRIME.Enabled:=true
+  else IMPRIME.Enabled:=false;
+end;
+
+procedure TEstad_movCaja.R3Click(Sender: TObject);
+begin
+cobrador.Enabled:=false;
+CODIGO.Enabled:=true;
+CODIGO.SetFocus;
+end;
+
+procedure TEstad_movCaja.IMPRIMEClick(Sender: TObject);
+begin
+      Rv.SystemPrinter.Orientation:=poPortrait;
+      Rv.Execute;
+end;
+
+procedure TEstad_movCaja.Button1Click(Sender: TObject);
+var p,t:integer;
+var texto:widestring;
+begin
+R5.Clear;
+for p:=1 to CANTIDADES.RecordCount do begin
+  texto:='';
+  CANTIDADES.RecNo:=p;
+  if p=1 then begin
+    texto:='TipoMovimiento' + chr(9) + 'Cantidad' + chr(9) + 'ImporteTotal' + chr(9) + 'TotalComision' + chr(9) + 'TotalNeto';
+    R5.Lines.Add(texto);
+    texto:='';
+  end;
+  for t:=0 to CANTIDADES.FieldCount-1 do begin
+    texto:=texto + CANTIDADES.Fields[t].AsString + chr(9);
+  end;
+  R5.Lines.Add(texto);
+end;
+texto:='';
+R5.Lines.Add(texto);
+R5.Lines.Add(texto);
+
+  Splash := TSplash.Create(Application);
+  Splash.Show;
+  Splash.ProgressBar1.Max:=800;
+  for p:=1 to DETALLE.RecordCount do begin
+    Splash.ProgressBar1.Position:=1;
+    texto:='';
+    DETALLE.RecNo:=p;
+    Splash.Label3.Caption:=inttostr(p);
+    Splash.Update;
+    if p=1 then begin
+      texto:='TipoTramites' + chr(9) + 'Cobrador' + chr(9) + 'NroGestor' + chr(9)
+           + 'TipoPlanilla' + chr(9) + 'Comision' + chr(9) + 'Entrada' + chr(9)
+           + 'Salida' + chr(9) + 'TotalNeto' + chr(9)+ 'NroPlanilla' + chr(9)+ 'FechaPlanilla';
+      R5.Lines.Add(texto);
+      texto:='';
+    end;
+    for t:=0 to DETALLE.FieldCount-1 do begin
+          texto:=texto + DETALLE.Fields[t].AsString + chr(9);
+    end;
+    R5.Lines.Add(texto);
+  end;
+R5.SelectAll;
+R5.CopyToClipboard;
+Splash.Hide;
+Splash.Free;
+messagedlg('Se Copiaron los Datos al Clipboard',mtwarning,[mbok],0);
+end;
+
+procedure TEstad_movCaja.DBGrid1TitleClick(Column: TColumn);
+begin
+CANTIDADES.IndexFieldNames:=Column.FieldName;
+end;
+
+procedure TEstad_movCaja.DBGrid2TitleClick(Column: TColumn);
+begin
+DETALLE.IndexFieldNames:=Column.FieldName;
+end;
+
+procedure TEstad_movCaja.SALEClick(Sender: TObject);
+begin
+Close;
+end;
+
+procedure TEstad_movCaja.COBRADORKeyPress(Sender: TObject; var Key: Char);
+begin
+if key = chr(13) then buscar.SetFocus;
+end;
+
+procedure TEstad_movCaja.COBRADORExit(Sender: TObject);
+begin
+if COBRADOR.ItemIndex < 0 then begin
+  messagedlg('ERROR!! No Existe el Cobrador Ingresado!!',mterror,[mbok],0);
+  COBRADOR.SetFocus;
+end;
+end;
+
+procedure TEstad_movCaja.RvPrint(Sender: TObject);
+var posfx,posfy,posfin,pos_y,salto:double;
+    acum,calc,acum1:real;
+    mn,hoja,t,y,peri,Tamanio:integer;
+    txt, Fuente,PathLogo:string;
+    yh:boolean;
+    Imagen1:TBitMap;
+
+   Function Logo(pos1,pos2:double;hoja:integer;impuesto:byte):double;
+   var posn:double;
+   begin
+   with Rv do begin
+     posn:=pos2;
+     Imagen1 := TBitMap.Create;
+     PathLogo:=modulo2.path_todo + '\Imagenes\logo_carmelo.jpg';
+     if FileExists(PathLogo) then begin
+       Image1.Picture.LoadFromFile(PathLogo);
+       Imagen1.Assign(Image1.Picture.Graphic);
+       BaseReport.PrintBitmapRect(pos1+5,posn+5,pos1+50,posn+20,Imagen1);
+     end;
+     Imagen1.Free;
+     BaseReport.Rectangle(pos1+4,posn+5,pos1+200,posn+20);
+     Fuente:=modulo2.INI1.ReadString('Titulo3 Facturas','Fuente','Arial Black');
+     try
+       Tamanio:=strtoint(modulo2.INI1.ReadString('Titulo3 Facturas','Tamaño','10'));
+     except
+       Tamanio:=10;
+     end;
+     BaseReport.SetFont(Fuente,Tamanio);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.PrintXY(pos1+50,posn+15,'Servicios & Mandatos S.A.');
+     BaseReport.PrintXY(pos1+140,posn+15,modulo2.INI1.ReadString('Titulo3 Facturas','Titulo0','')+ ' - Parque de los Recuerdos');
+     BaseReport.SetFont('Arial Black',10);
+     BaseReport.FontColor:=clBlack;
+     BaseReport.Rectangle(pos1+4,posn+5,pos1+200,posn+30);
+     BaseReport.PrintXY(pos1+5,posn+27,'Libro Caja de FechaDesde: ' + trim(fecemi.Text) + '  FechaHasta: ' + trim(fecven.Text) );
+   end;
+   Logo:=posn+28;
+   end;
+
+  Function mostrar1(pos1,pos2:double;hoja:integer;impuesto:byte):double;
+  var posn:double;
+  begin
+      posn:=pos2;
+      Rv.BaseReport.SetFont('Arial Black',10);
+      Rv.BaseReport.FontColor:=clBlack;
+      posn:=posn + 5;
+      Rv.BaseReport.SetFont('MS Sans Serif',8);
+      Rv.BaseReport.FontColor:=clBlack;
+      Rv.BaseReport.Rectangle(pos1+5,posn,pos1+200,posn+5);
+      Rv.BaseReport.PrintXY(pos1+6,posn+4,'TipoTramites');
+      Rv.BaseReport.PrintXY(pos1+33,posn+4,'Cobrador - NroGestor');
+      //Rv.BaseReport.PrintXY(pos1+49,posn+4,'NroGestor');
+      Rv.BaseReport.PrintXY(pos1+86,posn+4,'TipoPlanilla');
+      Rv.BaseReport.PrintXY(pos1+105,posn+4,'Comision');
+      Rv.BaseReport.PrintXY(pos1+120,posn+4,'Entrada');
+      Rv.BaseReport.PrintXY(pos1+134,posn+4,'Salida');
+      Rv.BaseReport.PrintXY(pos1+146,posn+4,'TotalNeto');
+      Rv.BaseReport.PrintXY(pos1+162,posn+4,'NroPlanilla');
+      Rv.BaseReport.PrintXY(pos1+181,posn+4,'FechaPlanilla');
+     // Rv.BaseReport.PrintXY(pos1+181,posn+4,'Imp. Cobrado');
+      mostrar1:=posn;
+  end;
+
+  Procedure mostrar_raya(pos1,pos2,posfin:double);
+  var posn:double;
+  begin
+     posn:=pos2;
+     Rv.BaseReport.MoveTo(pos1+5,posn);Rv.BaseReport.LineTo(pos1+5,posfin);{Linea de la izq.}
+     Rv.BaseReport.MoveTo(pos1+32,posn);Rv.BaseReport.LineTo(pos1+32,posfin);{cobrador}
+     //Rv.BaseReport.MoveTo(pos1+48,posn);Rv.BaseReport.LineTo(pos1+48,posfin);{Ngestor}
+     Rv.BaseReport.MoveTo(pos1+85,posn);Rv.BaseReport.LineTo(pos1+85,posfin);{tipoplanilla}
+     Rv.BaseReport.MoveTo(pos1+104,posn);Rv.BaseReport.LineTo(pos1+104,posfin);{comsion}
+     Rv.BaseReport.MoveTo(pos1+119,posn);Rv.BaseReport.LineTo(pos1+119,posfin);{entrada}
+     Rv.BaseReport.MoveTo(pos1+133,posn);Rv.BaseReport.LineTo(pos1+133,posfin);{salida}
+     Rv.BaseReport.MoveTo(pos1+145,posn);Rv.BaseReport.LineTo(pos1+145,posfin);{totalneto}
+     Rv.BaseReport.MoveTo(pos1+161,posn);Rv.BaseReport.LineTo(pos1+161,posfin);{nroplanilla}
+     Rv.BaseReport.MoveTo(pos1+180,posn);Rv.BaseReport.LineTo(pos1+180,posfin);{fplanilla}
+     Rv.BaseReport.MoveTo(pos1+200,posn);Rv.BaseReport.LineTo(pos1+200,posfin);{Linea de la der.}
+     Rv.BaseReport.MoveTo(pos1+5,posfin);Rv.BaseReport.LineTo(pos1+200,posfin);{Linea de Abajo}
+  end;
+
+  Function Pie(pos1,pos2:double;hoja:integer;impuesto:byte):double;
+  var posn:double;
+      t:integer;
+  begin
+      posn:=pos2 + 5;
+      Rv.BaseReport.SetFont('Arial',8);
+      Rv.BaseReport.FontColor:=clBlack;
+      Rv.BaseReport.PrintXY(pos1+94,posn,'TOTALES' );
+       for t:=1 to datasource1.DataSet.RecordCount  do  begin
+         if Trim(cabeza.Cells[0,t]) = 'TOTAL' then begin
+          Rv.BaseReport.SetFont('Arial',7);
+          Rv.BaseReport.FontColor:=clBlack;
+          Rv.BaseReport.PrintXY(pos1+120,posn,cabeza.Cells[2,t]);//Entrada
+          Rv.BaseReport.PrintXY(pos1+134,posn,cabeza.Cells[3,t]);//salida
+          Rv.BaseReport.PrintXY(pos1+146,posn,cabeza.Cells[4,t]);//totalneto
+         end;
+       end;
+      posn:=posn + 5;
+      Rv.BaseReport.PrintXY(pos1+150,posn,'Fec Imp: '  + trim(strcut(Fec_System(),10)));
+  end;
+
+begin
+hoja:=1;posfx:=5;posfy:=0;salto:=3;
+yh:=true;
+posfy:=logo(posfx,posfy,hoja,2);
+posfy:=mostrar1(posfx,posfy,hoja,2);
+pos_y:=posfy+salto+salto+salto;
+  for t:=1 to datasource2.DataSet.RecordCount  do  begin
+    Rv.BaseReport.SetFont('Arial',7);
+    Rv.BaseReport.FontColor:=clBlack;
+    Rv.BaseReport.PrintXY(posfx+6,pos_y,cuerpo.Cells[0,t]);//tipotram
+    Rv.BaseReport.PrintXY(posfx+33,pos_y,cuerpo.Cells[1,t] + ' - (' + cuerpo.Cells[2,t] +')');//cobrador
+    Rv.BaseReport.PrintXY(posfx+86,pos_y,cuerpo.Cells[3,t]);//tipoplanilla
+    Rv.BaseReport.PrintXY(posfx+105,pos_y,cuerpo.Cells[4,t]);//comsion
+    Rv.BaseReport.PrintXY(posfx+120,pos_y,cuerpo.Cells[5,t]);//Entrada
+    Rv.BaseReport.PrintXY(posfx+134,pos_y,cuerpo.Cells[6,t]);//salida
+    Rv.BaseReport.PrintXY(posfx+146,pos_y,cuerpo.Cells[7,t]);//totalneto
+    Rv.BaseReport.PrintXY(posfx+162,pos_y,cuerpo.Cells[8,t]);//nroplanilla
+    Rv.BaseReport.PrintXY(posfx+181,pos_y,cuerpo.Cells[9,t]);//fechaplanilla
+    pos_y:=pos_y + salto;
+
+    if (pos_y > 260) and (t < datasource2.DataSet.RecordCount -1) then begin {Aca sumamos una nueva pagina}
+      posfin:=pos_y;
+      mostrar_raya(posfx,posfy,posfin);
+      posfin:=posfin + 7;
+      posfx:=5;
+      posfy:=0;
+      hoja:=hoja+1;
+      Rv.BaseReport.NewPage;
+      logo(posfx,posfy,hoja,2);
+      posfy:=posfy+28;
+      posfy:=mostrar1(posfx,posfy,hoja,2);
+      pos_y:=posfy+salto+salto+salto;
+    end;
+  end;
+
+posfin:=pos_y;
+mostrar_raya(posfx,posfy,posfin);
+posfy:=posfin + 4;
+pie(posfx,posfy,hoja,2);
+posfin:=posfin + 3;
+
+end;
+
+end.
